@@ -1,0 +1,94 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: #0b1528;
+    --color-primary-light: #F0F4F8;
+    --color-navy: #0b1528;
+    --color-gray-body: #475569;
+    --color-bg: #F8FAFC;
+    --color-white: #ffffff;
+    --color-success: #10b981;
+    --color-warning: #F59E0B;
+    --color-error: #EF4444;
+  }
+
+  * {
+    box-sizing: border-box;
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  *::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #0b1528;
+    background-color: #F8FAFC;
+    line-height: 1.6;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: #0b1528;
+    font-weight: 600;
+  }
+}
+
+@layer components {
+  /* ─── Shimmer Skeleton ──────────────────────────────────────────────────── */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      #f0f0f0 25%,
+      #e0e0e0 50%,
+      #f0f0f0 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite linear;
+    border-radius: 8px;
+  }
+
+  /* ─── Focus Styles (Accessibility) ─────────────────────────────────────── */
+  .focus-ring {
+    @apply outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+
+  /* ─── Cards ─────────────────────────────────────────────────────────────── */
+  .card {
+    @apply bg-white rounded-lg shadow-card border border-gray-border p-6;
+  }
+
+  /* ─── Verified Badge ─────────────────────────────────────────────────────── */
+  .badge-verified {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
+           bg-success-light text-success;
+  }
+
+  .badge-pending {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
+           bg-warning-light text-warning;
+  }
+
+  .badge-rejected {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
+           bg-error-light text-error;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}

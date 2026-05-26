@@ -1,0 +1,76 @@
+'use client';
+
+import React from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Bell, User, HardHat, ShieldCheck, Menu, Search } from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
+import { useMenuStore } from '@/store/menuStore';
+
+export function MobileHeader() {
+  const { user } = useAuthStore();
+  const router = useRouter();
+  const openMenu = useMenuStore((state) => state.openMenu);
+
+  const handleProfileClick = () => {
+    if (!user) {
+      router.push('/login');
+    } else {
+      router.push(user.role === 'worker' ? '/worker/profile' : '/customer/profile');
+    }
+  };
+
+  return (
+    <header className="sticky top-0 z-40 bg-white border-b border-slate-100 px-4 h-14 flex items-center justify-between shadow-sm select-none shrink-0">
+      {/* Left: Hamburger menu and Logo */}
+      <div className="flex items-center gap-3">
+        <button 
+          onClick={openMenu}
+          className="text-slate-800 hover:text-navy p-1 transition-colors"
+        >
+          <Menu size={20} className="stroke-[2.5]" />
+        </button>
+        <Link href="/" className="flex items-center tracking-tight text-[21px] font-sans">
+          <span className="font-black text-slate-900">crew</span>
+          <span className="font-black text-blue-600">ora</span>
+        </Link>
+      </div>
+
+      {/* Right: Actions */}
+      <div className="flex items-center gap-2">
+        {/* Search icon triggers filter or highlights search bar */}
+        <button className="w-9 h-9 hover:bg-slate-50 text-slate-800 rounded-full flex items-center justify-center transition-colors">
+          <Search size={18} className="stroke-[2.5]" />
+        </button>
+
+        {user ? (
+          <div className="flex items-center gap-1">
+            {/* Notification Bell */}
+            <button className="w-8 h-8 hover:bg-slate-50 text-slate-800 rounded-full flex items-center justify-center transition-colors relative">
+              <Bell size={16} />
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-accent rounded-full border border-white"></span>
+            </button>
+
+            {/* Profile Button */}
+            <button
+              onClick={handleProfileClick}
+              className="text-xs font-semibold text-accent-700 hover:bg-accent-50 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 select-none"
+            >
+              {user.profilePhoto ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={user.profilePhoto} alt={user.name} className="w-4.5 h-4.5 rounded-full object-cover border border-slate-100" />
+              ) : (
+                <User size={13} className="stroke-[2.5]" />
+              )}
+              <span>Profile</span>
+            </button>
+          </div>
+        ) : (
+          <Link href="/login" className="text-xs font-semibold text-accent-700 hover:bg-accent-50 px-3 py-1.5 rounded-lg transition-colors">
+            Sign In
+          </Link>
+        )}
+      </div>
+    </header>
+  );
+}

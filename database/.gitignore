@@ -1,0 +1,6 @@
+# Ignore the PostgreSQL database data directory
+data/
+
+# Ignore log files
+*.log
+pg.log

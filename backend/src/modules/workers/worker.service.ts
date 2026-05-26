@@ -1,0 +1,154 @@
+/**
+ * Worker Service — Profile management, discovery
+ */
+
+import { prisma } from '../../lib/prisma';
+import { AppError } from '../../utils/AppError';
+import { assertOwnership } from '../../utils/ownershipCheck';
+import { z } from 'zod';
+
+export const updateWorkerProfileSchema = z.object({
+  bio: z.string().max(500).optional(),
+  experienceYears: z.number().min(0).max(60).optional(),
+  city: z.string().min(2).optional(),
+  serviceRadius: z.number().min(1).max(100).optional(),
+  availability: z.enum(['available', 'unavailable', 'on_a_job']).optional(),
+  tradeCategories: z
+    .array(z.enum(['plumber', 'electrician', 'carpenter', 'painter', 'welder', 'mason', 'hvac', 'tiler', 'roofer', 'other']))
+    .min(1)
+    .optional(),
+});
+
+export async function getWorkerProfile(workerId: string) {
+  const worker = await prisma.worker.findUnique({
+    where: { id: workerId },
+  });
+  if (!worker || !worker.isActive) throw new AppError('Worker not found', 404);
+  return worker;
+}
+
+export async function updateWorkerProfile(
+  workerId: string,
+  requestingUserId: string,
+  updates: z.infer<typeof updateWorkerProfileSchema>
+) {
+  assertOwnership(workerId, requestingUserId);
+  const worker = await prisma.worker.update({
+    where: { id: workerId },
+    data: updates,
+  });
+  if (!worker) throw new AppError('Worker not found', 404);
+  return worker;
+}
+
+export async function updateAvailability(
+  workerId: string,
+  requestingUserId: string,
+  availability: 'available' | 'unavailable' | 'on_a_job'
+) {
+  assertOwnership(workerId, requestingUserId);
+  const worker = await prisma.worker.update({
+    where: { id: workerId },
+    data: { availability },
+  });
+  if (!worker) throw new AppError('Worker not found', 404);
+  return worker;
+}
+
+export async function discoverWorkers(query: {
+  tradeCategory?: string;
+  lat?: number;
+  lng?: number;
+  radiusKm?: number;
+  page?: number;
+  limit?: number;
+}) {
+  const { tradeCategory, lat, lng, radiusKm = 30, page = 1, limit = 20 } = query;
+  const skip = (page - 1) * limit;
+
+  let workers: any[] = [];
+  let total = 0;
+
+  if (lat !== undefined && lng !== undefined) {
+    if (tradeCategory) {
+      const countResult: any[] = await prisma.$queryRaw`
+        SELECT COUNT(*)::integer as count FROM "Worker"
+        WHERE "verificationStatus" = 'approved' AND "isActive" = true AND "availability" <> 'unavailable'
+        AND "latitude" IS NOT NULL AND "longitude" IS NOT NULL
+        AND ${tradeCategory} = ANY("tradeCategories")
+        AND (6371 * acos(cos(radians(${lat})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${lng})) + sin(radians(${lat})) * sin(radians(latitude)))) < ${radiusKm}
+      `;
+      total = countResult[0]?.count || 0;
+
+      workers = await prisma.$queryRaw`
+        SELECT id, name, "tradeCategories", city, "experienceYears", bio, availability, "profilePhoto", "verificationStatus",
+               (6371 * acos(cos(radians(${lat})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${lng})) + sin(radians(${lat})) * sin(radians(latitude)))) AS distance
+        FROM "Worker"
+        WHERE "verificationStatus" = 'approved' AND "isActive" = true AND "availability" <> 'unavailable'
+        AND "latitude" IS NOT NULL AND "longitude" IS NOT NULL
+        AND ${tradeCategory} = ANY("tradeCategories")
+        AND (6371 * acos(cos(radians(${lat})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${lng})) + sin(radians(${lat})) * sin(radians(latitude)))) < ${radiusKm}
+        ORDER BY distance ASC
+        LIMIT ${limit} OFFSET ${skip}
+      `;
+    } else {
+      const countResult: any[] = await prisma.$queryRaw`
+        SELECT COUNT(*)::integer as count FROM "Worker"
+        WHERE "verificationStatus" = 'approved' AND "isActive" = true AND "availability" <> 'unavailable'
+        AND "latitude" IS NOT NULL AND "longitude" IS NOT NULL
+        AND (6371 * acos(cos(radians(${lat})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${lng})) + sin(radians(${lat})) * sin(radians(latitude)))) < ${radiusKm}
+      `;
+      total = countResult[0]?.count || 0;
+
+      workers = await prisma.$queryRaw`
+        SELECT id, name, "tradeCategories", city, "experienceYears", bio, availability, "profilePhoto", "verificationStatus",
+               (6371 * acos(cos(radians(${lat})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${lng})) + sin(radians(${lat})) * sin(radians(latitude)))) AS distance
+        FROM "Worker"
+        WHERE "verificationStatus" = 'approved' AND "isActive" = true AND "availability" <> 'unavailable'
+        AND "latitude" IS NOT NULL AND "longitude" IS NOT NULL
+        AND (6371 * acos(cos(radians(${lat})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${lng})) + sin(radians(${lat})) * sin(radians(latitude)))) < ${radiusKm}
+        ORDER BY distance ASC
+        LIMIT ${limit} OFFSET ${skip}
+      `;
+    }
+  } else {
+    const where: any = {
+      verificationStatus: 'approved',
+      isActive: true,
+      availability: { not: 'unavailable' },
+    };
+    if (tradeCategory) {
+      where.tradeCategories = { has: tradeCategory };
+    }
+
+    [workers, total] = await Promise.all([
+      prisma.worker.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          tradeCategories: true,
+          city: true,
+          experienceYears: true,
+          bio: true,
+          availability: true,
+          profilePhoto: true,
+          verificationStatus: true,
+        },
+        skip,
+        take: limit,
+      }),
+      prisma.worker.count({ where }),
+    ]);
+  }
+
+  return {
+    workers,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+}
