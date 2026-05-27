@@ -106,6 +106,7 @@ export default function WorkerProfileClient() {
   const router = useRouter();
   const { user } = useAuthStore();
   const [worker, setWorker] = useState<any>(null);
+  const [reviewsData, setReviewsData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -117,6 +118,15 @@ export default function WorkerProfileClient() {
       try {
         const { data } = await apiClient.get(`/workers/${id}`);
         setWorker(data.data.worker);
+
+        try {
+          const reviewsRes = await apiClient.get(`/workers/${id}/reviews`);
+          if (reviewsRes.data && reviewsRes.data.data) {
+            setReviewsData(reviewsRes.data.data);
+          }
+        } catch (revErr) {
+          console.error('Failed to load worker reviews:', revErr);
+        }
       } catch (err: any) {
         console.error('Failed to load worker profile:', err);
         setError('Expert not found or connection error');
@@ -194,6 +204,19 @@ export default function WorkerProfileClient() {
     ]
   };
 
+  const displayReviews = reviewsData && reviewsData.reviews && reviewsData.reviews.length > 0
+    ? reviewsData.reviews.map((r: any) => ({
+        author: r.customerName || 'Customer',
+        rating: r.rating,
+        date: new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+        comment: r.comment || ''
+      }))
+    : meta.reviews;
+
+  const displayAverageRating = reviewsData?.stats?.averageRating ?? null;
+  const displayTotalReviews = reviewsData?.stats?.totalReviews ?? null;
+
+
   return (
     <div className="flex-1 flex flex-col bg-[#F8FAFC] relative animate-fadeIn select-none pb-28">
       
@@ -233,6 +256,14 @@ export default function WorkerProfileClient() {
               <span className="capitalize">{worker.tradeCategories.join(' • ')}</span>
             </div>
 
+            {displayAverageRating !== null && displayAverageRating > 0 && (
+              <div className="flex items-center gap-1 text-xs font-bold text-amber-500 mt-0.5">
+                <Star size={13} className="fill-amber-500 text-amber-500" />
+                <span>{displayAverageRating}</span>
+                <span className="text-slate-400 font-normal">({displayTotalReviews} {displayTotalReviews === 1 ? 'review' : 'reviews'})</span>
+              </div>
+            )}
+
             <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-500">
               <span className="flex items-center gap-0.5">
                 <MapPin size={12} className="text-slate-400" />
@@ -255,9 +286,14 @@ export default function WorkerProfileClient() {
             <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Jobs Completed</span>
           </div>
           <div>
-            <span className="block text-base font-black text-white">{meta.satisfaction}</span>
-            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Satisfaction</span>
+            <span className="block text-base font-black text-white">
+              {displayAverageRating !== null && displayAverageRating > 0 ? `${displayAverageRating} ★` : meta.satisfaction}
+            </span>
+            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+              {displayAverageRating !== null && displayAverageRating > 0 ? 'Avg Rating' : 'Satisfaction'}
+            </span>
           </div>
+
           <div>
             <span className="block text-base font-black text-white">{worker.experienceYears || 5} Years</span>
             <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Experience</span>
@@ -318,7 +354,7 @@ export default function WorkerProfileClient() {
           </h3>
 
           <div className="divide-y divide-slate-100">
-            {meta.reviews.map((rev, idx) => (
+            {displayReviews.map((rev: any, idx: number) => (
               <div key={idx} className={`space-y-2 ${idx > 0 ? 'pt-3.5 mt-3.5' : ''}`}>
                 <div className="flex justify-between items-start">
                   <div>
@@ -335,10 +371,13 @@ export default function WorkerProfileClient() {
                     ))}
                   </div>
                 </div>
-                <p className="text-xs text-slate-500 leading-relaxed italic">&ldquo;{rev.comment}&rdquo;</p>
+                {rev.comment && (
+                  <p className="text-xs text-slate-500 leading-relaxed italic">&ldquo;{rev.comment}&rdquo;</p>
+                )}
               </div>
             ))}
           </div>
+
         </div>
 
       </div>

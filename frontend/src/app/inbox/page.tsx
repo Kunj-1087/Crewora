@@ -7,7 +7,7 @@ import {
   Smile, User, Phone
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
-import io, { Socket } from 'socket.io-client';
+import { useSocket } from '@/contexts/SocketContext';
 import apiClient from '@/lib/api/client';
 
 let API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
@@ -20,10 +20,9 @@ if (typeof window !== 'undefined') {
   }
 }
 
-const SOCKET_URL = API_BASE.replace('/api/v1', '');
-
 export default function InboxPage() {
   const { user, isInitialized } = useAuthStore();
+  const socket = useSocket();
   const router = useRouter();
   const searchParams = useSearchParams();
   const targetChatId = searchParams.get('chat');
@@ -35,7 +34,6 @@ export default function InboxPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   
-  const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Redirect if not logged in
@@ -85,15 +83,7 @@ export default function InboxPage() {
 
   // Setup Socket.io real-time listener
   useEffect(() => {
-    if (!user) return;
-
-    const socket = io(SOCKET_URL, {
-      withCredentials: true,
-      transports: ['websocket', 'polling']
-    });
-    socketRef.current = socket;
-
-    socket.emit('join', user.id);
+    if (!socket || !user) return;
 
     socket.on('newMessage', (msg: any) => {
       const otherId = msg.senderId === user.id ? msg.receiverId : msg.senderId;
@@ -117,9 +107,9 @@ export default function InboxPage() {
     });
 
     return () => {
-      socket.disconnect();
+      socket.off('newMessage');
     };
-  }, [user, activeChatId]);
+  }, [socket, user, activeChatId]);
 
   // Set active chat based on query param
   useEffect(() => {
@@ -143,7 +133,7 @@ export default function InboxPage() {
   }, [messages]);
 
   const handleSendMessage = () => {
-    if (!typedMessage.trim() || !activeChatId || !user || !socketRef.current) return;
+    if (!typedMessage.trim() || !activeChatId || !user || !socket) return;
 
     const otherConv = conversations.find(c => c.id === activeChatId);
     const otherRole = otherConv?.role === 'Client' ? 'customer' : 'worker';
@@ -157,7 +147,7 @@ export default function InboxPage() {
     };
 
     // Emit message to Socket.io server
-    socketRef.current.emit('sendMessage', payload);
+    socket.emit('sendMessage', payload);
     setTypedMessage('');
   };
 

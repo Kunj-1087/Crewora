@@ -435,3 +435,11 @@ export async function resetPasswordWorker(token: string, newPassword: string) {
   });
 }
 
+export async function registerDeviceToken(userId: string, userType: string, token: string) {
+  return await prisma.deviceToken.upsert({
+    where: { token },
+    update: { userId, userType },
+    create: { userId, userType, token },
+  });
+}
+

@@ -58,3 +58,7 @@ export const adminLoginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
 });
+
+export const deviceTokenSchema = z.object({
+  token: z.string().min(10, 'Device token must be at least 10 characters'),
+});

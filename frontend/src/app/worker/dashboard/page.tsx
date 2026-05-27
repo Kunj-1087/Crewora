@@ -13,12 +13,14 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { JobCardSkeleton } from '@/components/ui/Skeleton';
+import { useSocket } from '@/contexts/SocketContext';
 
 type AvailabilityType = 'available' | 'unavailable' | 'on_a_job';
 type TabType = 'pending' | 'accepted';
 
 export default function WorkerDashboard() {
   const { user, isInitialized, updateUser } = useAuthStore();
+  const socket = useSocket();
   const router = useRouter();
 
   const [feed, setFeed] = useState<any[]>([]);
@@ -30,6 +32,61 @@ export default function WorkerDashboard() {
   const [changingStatus, setChangingStatus] = useState(false);
   const [actioningMatchId, setActioningMatchId] = useState<string | null>(null);
   const [successMatch, setSuccessMatch] = useState<any | null>(null);
+
+  // Sync dashboard if match was accepted/declined via toast notification
+  useEffect(() => {
+    const handleToastResponse = (e: Event) => {
+      const { matchId, action } = (e as CustomEvent).detail;
+      if (action === 'accept') {
+        const matchedJob = feed.find(item => item.id === matchId);
+        if (matchedJob) {
+          setSuccessMatch(matchedJob);
+        }
+        setActiveTab('accepted');
+      } else {
+        setFeed(prev => prev.filter(item => item.id !== matchId));
+      }
+    };
+
+    window.addEventListener('worker:match_responded', handleToastResponse);
+    return () => {
+      window.removeEventListener('worker:match_responded', handleToastResponse);
+    };
+  }, [feed]);
+
+  // Listen for real-time invites via Socket.io
+  useEffect(() => {
+    if (!socket || !user || user.role !== 'worker') return;
+
+    const handleNewInvite = (data: any) => {
+      if (activeTab === 'pending') {
+        const incomingMatch = {
+          id: data.matchId,
+          status: 'pending',
+          jobId: {
+            id: data.jobId,
+            title: data.title,
+            description: data.description,
+            tradeCategory: data.tradeCategory,
+            address: data.address,
+            urgency: data.urgency,
+            scheduledAt: data.scheduledAt,
+            status: 'open',
+          }
+        };
+
+        setFeed((prev) => {
+          if (prev.some((m) => m.id === data.matchId)) return prev;
+          return [incomingMatch, ...prev];
+        });
+      }
+    };
+
+    socket.on('new_job_invite', handleNewInvite);
+    return () => {
+      socket.off('new_job_invite', handleNewInvite);
+    };
+  }, [socket, user, activeTab]);
 
   useEffect(() => {
     if (isInitialized) {

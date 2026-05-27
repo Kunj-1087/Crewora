@@ -6,15 +6,45 @@ import {
   Plus, ArrowUpRight, MapPin, User, Phone, CheckCircle2
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { useSocket } from '@/contexts/SocketContext';
 import apiClient from '@/lib/api/client';
 import { Job } from '@/types';
 
 export default function CustomerDashboard() {
   const { user, isInitialized } = useAuthStore();
+  const socket = useSocket();
   const router = useRouter();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [conversations, setConversations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Listen for job acceptance via Socket.io in real-time
+  useEffect(() => {
+    if (!socket || !user || user.role !== 'customer') return;
+
+    const handleJobAccepted = (data: any) => {
+      setJobs((prevJobs) =>
+        prevJobs.map((job) => {
+          if (job.id === data.jobId) {
+            return {
+              ...job,
+              status: 'matched',
+              assignedWorker: {
+                id: data.workerId,
+                name: data.workerName,
+              },
+            } as any;
+          }
+          return job;
+        })
+      );
+    };
+
+    socket.on('job_match_accepted', handleJobAccepted);
+    return () => {
+      socket.off('job_match_accepted', handleJobAccepted);
+    };
+  }, [socket, user]);
 
   useEffect(() => {
     if (isInitialized) {

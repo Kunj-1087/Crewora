@@ -3,7 +3,8 @@ import * as jobService from './job.service';
 
 export async function createJob(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const job = await jobService.createJob(req.user!.id, req.body);
+    const io = req.app.get('io');
+    const job = await jobService.createJob(req.user!.id, req.body, io);
     res.status(201).json({ success: true, message: 'Job posted successfully', data: { job } });
   } catch (error) { next(error); }
 }
@@ -48,7 +49,8 @@ export async function getWorkerJobFeed(req: Request, res: Response, next: NextFu
 export async function respondToMatch(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const { action } = req.body as { action: 'accept' | 'decline' };
-    const match = await jobService.respondToMatch(req.params.matchId, req.user!.id, action);
+    const io = req.app.get('io');
+    const match = await jobService.respondToMatch(req.params.matchId, req.user!.id, action, io);
     res.json({ success: true, message: `Job ${action}ed`, data: { match } });
   } catch (error) { next(error); }
 }

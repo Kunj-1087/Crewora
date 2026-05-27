@@ -70,6 +70,7 @@ export interface Job {
   completedAt?: string;
   cancellationReason?: string;
   createdAt: string;
+  review?: any;
 }
 
 export interface Match {

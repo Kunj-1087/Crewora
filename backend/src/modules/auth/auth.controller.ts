@@ -245,3 +245,17 @@ export async function resetPasswordWorker(
   }
 }
 
+export async function registerDeviceToken(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { token } = req.body;
+    await authService.registerDeviceToken(req.user!.id, req.user!.type, token);
+    res.json({ success: true, message: 'Device token registered successfully' });
+  } catch (error) {
+    next(error);
+  }
+}
+

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import '../styles/globals.css';
 import { AuthProvider } from '@/lib/auth/AuthProvider';
+import { SocketProvider } from '@/contexts/SocketContext';
 import { MobileShell } from '@/components/layout/MobileShell';
 import { MobileHeader } from '@/components/layout/MobileHeader';
 import { MobileTabBar } from '@/components/layout/MobileTabBar';
@@ -31,13 +32,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <AuthProvider>
-          <MobileShell>
-            <MobileHeader />
-            <main className="flex-1 flex flex-col overflow-y-auto min-h-0 bg-slate-50">
-              {children}
-            </main>
-            <MobileTabBar />
-          </MobileShell>
+          <SocketProvider>
+            <MobileShell>
+              <MobileHeader />
+              <main className="flex-1 flex flex-col overflow-y-auto min-h-0 bg-slate-50">
+                {children}
+              </main>
+              <MobileTabBar />
+            </MobileShell>
+          </SocketProvider>
         </AuthProvider>
       </body>
     </html>

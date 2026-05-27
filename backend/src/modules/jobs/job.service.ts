@@ -8,6 +8,7 @@ import { AppError } from '../../utils/AppError';
 import { assertOwnership } from '../../utils/ownershipCheck';
 import { sendEmail, jobMatchedEmail } from '../../utils/email';
 import { logger } from '../../utils/logger';
+import { sendPushToUser } from '../../utils/notification';
 
 const MAX_MATCH_RADIUS_METERS = 30000; // 30 km default
 const MAX_WORKERS_TO_MATCH = 5;
@@ -21,7 +22,8 @@ export async function createJob(
     location: { address: string; coordinates: [number, number] };
     urgency: string;
     scheduledAt?: string;
-  }
+  },
+  io?: any
 ) {
   const job = await prisma.job.create({
     data: {
@@ -39,7 +41,7 @@ export async function createJob(
   });
 
   // Trigger matching asynchronously
-  matchWorkersForJob(job.id).catch((err) =>
+  matchWorkersForJob(job.id, io).catch((err) =>
     logger.error('Job matching failed', { jobId: job.id, err })
   );
 
@@ -101,6 +103,8 @@ export async function getJobById(jobId: string, requestingUserId: string, userTy
           name: true,
           tradeCategories: true,
           city: true,
+          profilePhoto: true,
+          phone: true,
         },
       },
       customer: {
@@ -110,6 +114,7 @@ export async function getJobById(jobId: string, requestingUserId: string, userTy
           phone: true,
         },
       },
+      review: true,
     },
   });
 
@@ -261,7 +266,8 @@ export async function getWorkerJobFeed(
 export async function respondToMatch(
   matchId: string,
   workerId: string,
-  action: 'accept' | 'decline'
+  action: 'accept' | 'decline',
+  io?: any
 ) {
   const match = await prisma.match.findUnique({
     where: { id: matchId },
@@ -316,6 +322,27 @@ export async function respondToMatch(
           subject: 'Crewora — A worker accepted your job!',
           html: jobMatchedEmail(customer.name, job.title, worker.name),
         }).catch((err) => logger.error('Match notification email failed', { err }));
+
+        // Emit real-time socket event
+        if (io) {
+          io.to(job.customerId).emit('job_match_accepted', {
+            jobId: job.id,
+            jobTitle: job.title,
+            workerId: worker.id,
+            workerName: worker.name,
+          });
+        }
+
+        // Send Background Push Notification (FCM)
+        sendPushToUser(
+          job.customerId,
+          '🎉 Contractor Assigned!',
+          `${worker.name} accepted your job: "${job.title}".`,
+          {
+            type: 'job_match_accepted',
+            jobId: job.id,
+          }
+        ).catch((err) => logger.error('Failed to send acceptance push', { err }));
       }
     }
   }
@@ -325,7 +352,7 @@ export async function respondToMatch(
 
 // ─── Matching Algorithm ───────────────────────────────────────────────────────
 
-async function matchWorkersForJob(jobId: string) {
+async function matchWorkersForJob(jobId: string, io?: any) {
   const job = await prisma.job.findUnique({ where: { id: jobId } });
   if (!job) return;
 
@@ -367,6 +394,41 @@ async function matchWorkersForJob(jobId: string) {
       skipDuplicates: true,
     });
     logger.info('Workers matched to job', { jobId, count: workers.length });
+
+    // Send real-time Socket.io notifications
+    if (io) {
+      const matches = await prisma.match.findMany({
+        where: {
+          jobId,
+          workerId: { in: workers.map((w) => w.id) },
+        },
+      });
+
+      for (const match of matches) {
+        io.to(match.workerId).emit('new_job_invite', {
+          matchId: match.id,
+          jobId: job.id,
+          title: job.title,
+          description: job.description,
+          tradeCategory: job.tradeCategory,
+          urgency: job.urgency,
+          address: job.address,
+          scheduledAt: job.scheduledAt ? job.scheduledAt.toISOString() : null,
+        });
+
+        // Send Background Push Notification (FCM)
+        sendPushToUser(
+          match.workerId,
+          '🛠️ New Job Match!',
+          `A ${job.tradeCategory} is needed for "${job.title}". Urgency: ${job.urgency}.`,
+          {
+            type: 'new_job_invite',
+            matchId: match.id,
+            jobId: job.id,
+          }
+        ).catch((err) => logger.error('Failed to send match push', { err }));
+      }
+    }
   } catch (err) {
     logger.error('Failed to create match documents', { jobId, err });
   }

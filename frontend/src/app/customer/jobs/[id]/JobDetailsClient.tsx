@@ -7,6 +7,7 @@ import {
   Trash2, ShieldCheck, User, Star, HardHat, Info 
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { useSocket } from '@/contexts/SocketContext';
 import apiClient from '@/lib/api/client';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -15,6 +16,7 @@ import { Job } from '@/types';
 
 export default function JobDetailsClient() {
   const { user, isInitialized } = useAuthStore();
+  const socket = useSocket();
   const router = useRouter();
   const params = useParams();
   const jobId = params?.id as string;
@@ -29,15 +31,11 @@ export default function JobDetailsClient() {
   const [cancelReason, setCancelReason] = useState('');
   const [showCancelModal, setShowCancelModal] = useState(false);
 
-  useEffect(() => {
-    if (isInitialized) {
-      if (!user) {
-        router.push('/login');
-      } else if (user.role !== 'customer') {
-        router.push('/worker/dashboard');
-      }
-    }
-  }, [user, isInitialized, router]);
+  // Rating/Review State
+  const [rating, setRating] = useState<number>(0);
+  const [hoverRating, setHoverRating] = useState<number>(0);
+  const [comment, setComment] = useState<string>('');
+  const [submittingReview, setSubmittingReview] = useState<boolean>(false);
 
   const fetchData = useCallback(async () => {
     if (!jobId || !user || user.role !== 'customer') return;
@@ -58,6 +56,32 @@ export default function JobDetailsClient() {
     }
   }, [jobId, user]);
 
+  // Listen for job acceptance via Socket.io in real-time
+  useEffect(() => {
+    if (!socket || !user || user.role !== 'customer' || !jobId) return;
+
+    const handleJobAccepted = (data: any) => {
+      if (data.jobId === jobId) {
+        fetchData();
+      }
+    };
+
+    socket.on('job_match_accepted', handleJobAccepted);
+    return () => {
+      socket.off('job_match_accepted', handleJobAccepted);
+    };
+  }, [socket, user, jobId, fetchData]);
+
+  useEffect(() => {
+    if (isInitialized) {
+      if (!user) {
+        router.push('/login');
+      } else if (user.role !== 'customer') {
+        router.push('/worker/dashboard');
+      }
+    }
+  }, [user, isInitialized, router]);
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
@@ -77,6 +101,23 @@ export default function JobDetailsClient() {
       alert(err?.response?.data?.message || 'Could not cancel job.');
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const handleSubmitReview = async () => {
+    if (rating < 1 || rating > 5) return;
+    setSubmittingReview(true);
+    try {
+      await apiClient.post(`/jobs/${jobId}/review`, {
+        rating,
+        comment: comment.trim() || undefined,
+      });
+      fetchData(); // Refresh details
+    } catch (err: any) {
+      console.error('Failed to submit review:', err);
+      alert(err?.response?.data?.message || 'Could not submit your review.');
+    } finally {
+      setSubmittingReview(false);
     }
   };
 
@@ -197,12 +238,12 @@ export default function JobDetailsClient() {
           </div>
         )}
 
-        {/* Assigned Worker Info (if matched) */}
-        {(job.status === 'matched' || job.status === 'in_progress') && assignedWorker && (
+        {/* Assigned Worker Info (if matched or completed) */}
+        {(job.status === 'matched' || job.status === 'in_progress' || job.status === 'completed') && assignedWorker && (
           <div className="bg-white rounded-2xl border-2 border-emerald-500/20 p-5 shadow-sm space-y-4 animate-fadeIn">
             <div className="flex items-center gap-2 text-emerald-700 font-black text-xs uppercase tracking-wider select-none">
               <ShieldCheck size={16} />
-              <span>Assigned Worker Found</span>
+              <span>{job.status === 'completed' ? 'Contractor Details' : 'Assigned Worker Found'}</span>
             </div>
 
             <div className="flex items-center gap-4">
@@ -239,6 +280,104 @@ export default function JobDetailsClient() {
                 Please align on service price and details directly via phone call.
               </p>
             </div>
+          </div>
+        )}
+
+        {/* Rating/Review Section if completed */}
+        {job.status === 'completed' && assignedWorker && (
+          <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4 animate-fadeIn">
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1 select-none">
+              Rate Your Experience
+            </h3>
+            
+            {job.review ? (
+              // If already reviewed, display the review details
+              <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 space-y-2 animate-fadeIn text-left">
+                <div className="flex justify-between items-center select-none">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Submitted Review</span>
+                  <div className="flex gap-0.5">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star
+                        key={i}
+                        size={14}
+                        className={i < (job as any).review.rating ? "fill-amber-500 text-amber-500" : "text-slate-200"}
+                      />
+                    ))}
+                  </div>
+                </div>
+                {(job as any).review.comment ? (
+                  <p className="text-xs text-slate-700 leading-relaxed italic">&quot;{(job as any).review.comment}&quot;</p>
+                ) : (
+                  <p className="text-[11px] text-slate-400 leading-relaxed italic">No comments written.</p>
+                )}
+                <span className="block text-[9px] text-slate-400 font-medium text-right select-none">
+                  Submitted on {new Date((job as any).review.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+            ) : (
+              // Interactive rating submission form
+              <div className="space-y-4 text-left animate-fadeIn">
+                <div className="flex flex-col items-center gap-2 select-none py-2 bg-slate-50 rounded-2xl border border-slate-100/50">
+                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Tap to Rate</span>
+                  <div className="flex gap-2">
+                    {Array.from({ length: 5 }).map((_, i) => {
+                      const starVal = i + 1;
+                      const isGold = hoverRating ? starVal <= hoverRating : starVal <= rating;
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          onMouseEnter={() => setHoverRating(starVal)}
+                          onMouseLeave={() => setHoverRating(0)}
+                          onClick={() => setRating(starVal)}
+                          className="p-1 hover:scale-110 active:scale-95 transition-transform duration-100 outline-none"
+                        >
+                          <Star
+                            size={28}
+                            className={`transition-colors duration-100 ${
+                              isGold ? 'fill-amber-400 text-amber-400' : 'text-slate-200'
+                            }`}
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {rating > 0 && (
+                    <span className="text-[10px] font-bold text-slate-500 mt-1 select-none">
+                      {rating === 5 ? 'Excellent! 🌟' : rating === 4 ? 'Very Good! 👍' : rating === 3 ? 'Good / Average 🙂' : rating === 2 ? 'Disappointing 🙁' : 'Very Poor 😠'}
+                    </span>
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1 select-none">
+                    Write feedback (optional)
+                  </label>
+                  <textarea
+                    placeholder="Tell others about your experience (e.g. communication, quality, punctuality)..."
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    rows={3}
+                    maxLength={500}
+                    className="w-full text-xs p-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white outline-none focus:border-[#10b981] transition-all text-slate-800"
+                  />
+                  <div className="flex justify-between text-[9px] text-slate-400 select-none px-1">
+                    <span>Max 500 characters</span>
+                    <span>{comment.length}/500</span>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleSubmitReview}
+                  isLoading={submittingReview}
+                  disabled={rating === 0}
+                  variant="primary"
+                  className="w-full py-3 bg-[#10b981] hover:bg-[#059669] text-white text-xs font-bold rounded-xl"
+                >
+                  Submit Review
+                </Button>
+              </div>
+            )}
           </div>
         )}
 

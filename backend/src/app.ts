@@ -21,6 +21,7 @@ import workerRoutes from './modules/workers/worker.routes';
 import jobRoutes from './modules/jobs/job.routes';
 import adminRoutes from './modules/admin/admin.routes';
 import inboxRoutes from './modules/inbox/inbox.routes';
+import reviewRoutes from './modules/reviews/review.routes';
 
 const app = express();
 
@@ -119,6 +120,7 @@ app.use('/api/v1/workers', workerRoutes);
 app.use('/api/v1/jobs', jobRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/inbox', inboxRoutes);
+app.use('/api/v1', reviewRoutes);
 
 // ─── 404 Handler ─────────────────────────────────────────────────────────────
 

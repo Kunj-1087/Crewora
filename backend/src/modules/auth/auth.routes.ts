@@ -15,6 +15,7 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   adminLoginSchema,
+  deviceTokenSchema,
 } from './auth.schemas';
 
 const router = Router();
@@ -95,6 +96,13 @@ router.post(
   authRateLimiter,
   validate({ body: adminLoginSchema }),
   authController.loginAdmin
+);
+
+router.post(
+  '/device-token',
+  requireAuth('customer', 'worker'),
+  validate({ body: deviceTokenSchema }),
+  authController.registerDeviceToken
 );
 
 export default router;
