@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.env
+.env.local
+.env.production
+*.key
+*.pem
+uploads/
+logs/
+coverage/
+.nyc_output/
+
+/src/generated/prisma
+
+# Cache directories and build caches
+.cache/
+*.tsbuildinfo
+.eslintcache
+
