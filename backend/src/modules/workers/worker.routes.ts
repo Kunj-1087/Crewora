@@ -5,6 +5,9 @@ import { z } from 'zod';
 import { prisma } from '../../lib/prisma';
 import { AppError } from '../../utils/AppError';
 import * as workerService from './worker.service';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
 const router = Router();
 
@@ -118,5 +121,65 @@ router.get('/:id', validate({ params: workerIdParamSchema }), async (req, res, n
     res.json({ success: true, data: { worker } });
   } catch (error) { next(error); }
 });
+
+// Configure upload storage for worker profile photos
+const uploadDir = path.join(__dirname, '../../../uploads');
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, 'profile-' + req.user!.id + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit
+  fileFilter: (_req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    if (extname && mimetype) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only images (jpg, jpeg, png, webp) are allowed!'));
+    }
+  }
+});
+
+// Worker: upload and update own profile photo
+router.post(
+  '/me/profile-photo',
+  requireAuth('worker'),
+  upload.single('photo'),
+  async (req, res, next) => {
+    try {
+      if (!req.file) {
+        throw new AppError('No photo file uploaded', 400);
+      }
+
+      const photoUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+
+      const worker = await prisma.worker.update({
+        where: { id: req.user!.id },
+        data: { profilePhoto: photoUrl }
+      });
+
+      res.json({
+        success: true,
+        message: 'Profile photo updated successfully',
+        data: { worker }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 export default router;

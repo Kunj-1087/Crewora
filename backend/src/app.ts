@@ -4,6 +4,7 @@
  */
 
 import express from 'express';
+import path from 'path';
 import helmet from 'helmet';
 import cors from 'cors';
 import mongoSanitize from 'express-mongo-sanitize';
@@ -77,6 +78,9 @@ app.use(mongoSanitize());
 // ─── Global Rate Limiting ─────────────────────────────────────────────────────
 
 app.use('/api', apiRateLimiter);
+
+// ─── Static Files Serving ─────────────────────────────────────────────────────
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // ─── Request Logging ──────────────────────────────────────────────────────────
 

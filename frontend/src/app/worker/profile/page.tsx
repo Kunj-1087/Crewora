@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { 
-  HardHat, MapPin, Navigation, BookOpen, Briefcase, 
-  LogOut, CheckCircle, ArrowLeft, Save, Sparkles, Star 
+  HardHat, MapPin, BookOpen, Briefcase, 
+  LogOut, CheckCircle, ArrowLeft, Save, Sparkles, Star,
+  Camera, Loader2
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import apiClient from '@/lib/api/client';
@@ -18,7 +19,6 @@ import { Button } from '@/components/ui/Button';
 const schema = z.object({
   city: z.string().min(2, 'City name is required'),
   experienceYears: z.number().min(0, 'Experience cannot be negative').max(60, 'Experience is invalid'),
-  serviceRadius: z.number().min(1, 'Radius must be at least 1 km').max(100, 'Radius limit is 100 km'),
   bio: z.string().max(500, 'Bio cannot exceed 500 characters').optional(),
 });
 
@@ -44,20 +44,19 @@ export default function WorkerProfilePage() {
   const [selectedTrades, setSelectedTrades] = useState<string[]>([]);
   const [apiError, setApiError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const workerUser = user?.role === 'worker' ? user : null;
 
-  const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       city: workerUser?.city || '',
       experienceYears: workerUser?.experienceYears || 0,
-      serviceRadius: workerUser?.serviceRadius || 20,
       bio: workerUser?.bio || '',
     }
   });
-
-  const currentRadius = watch('serviceRadius');
 
   useEffect(() => {
     if (isInitialized) {
@@ -103,6 +102,38 @@ export default function WorkerProfilePage() {
     }
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      setApiError('Profile photo must be less than 2MB.');
+      return;
+    }
+
+    setUploading(true);
+    setApiError(null);
+    setSuccessMsg(null);
+
+    const formData = new FormData();
+    formData.append('photo', file);
+
+    try {
+      const { data: resData } = await apiClient.post('/workers/me/profile-photo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      updateUser(resData.data.worker);
+      setSuccessMsg('Profile photo updated successfully!');
+      setTimeout(() => setSuccessMsg(null), 3000);
+    } catch (err: any) {
+      console.error('Failed to upload profile photo:', err);
+      setApiError(err?.response?.data?.message || 'Could not upload profile photo.');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -138,13 +169,32 @@ export default function WorkerProfilePage() {
       <div className="p-5 space-y-6 overflow-y-auto flex-1">
         {/* Profile header card */}
         <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm flex items-center gap-4 select-none">
-          <div className="w-16 h-16 bg-slate-100 rounded-full border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept="image/*"
+            className="hidden"
+          />
+          <div 
+            onClick={() => !uploading && fileInputRef.current?.click()}
+            className="w-16 h-16 bg-slate-100 rounded-full border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 relative cursor-pointer group hover:border-blue-500 transition-colors"
+          >
             {user.profilePhoto ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.profilePhoto} alt={user.name} className="w-full h-full object-cover" />
+              <img src={user.profilePhoto} alt={user.name} className="w-full h-full object-cover group-hover:opacity-75 transition-opacity" />
             ) : (
-              <HardHat size={28} className="text-slate-400" />
+              <HardHat size={28} className="text-slate-400 group-hover:opacity-50 transition-opacity" />
             )}
+
+            {/* Upload Overlay */}
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              {uploading ? (
+                <Loader2 size={16} className="text-white animate-spin" />
+              ) : (
+                <Camera size={16} className="text-white" />
+              )}
+            </div>
           </div>
           <div className="text-left">
             <h2 className="font-extrabold text-slate-900 text-base">{user.name}</h2>
@@ -222,32 +272,7 @@ export default function WorkerProfilePage() {
             {...register('experienceYears', { valueAsNumber: true })}
           />
 
-          {/* 4. Service Radius Slider */}
-          <div className="space-y-2 select-none">
-            <div className="flex justify-between items-center">
-              <label className="text-sm font-bold text-slate-900 block">
-                Service Radius
-              </label>
-              <span className="text-xs font-black text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full">
-                {currentRadius} km
-              </span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Navigation size={16} className="text-slate-400 shrink-0" />
-              <input
-                type="range"
-                min={1}
-                max={100}
-                className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary-600"
-                {...register('serviceRadius', { valueAsNumber: true })}
-              />
-            </div>
-            <p className="text-[10px] text-slate-400 font-medium">
-              Matches you with jobs posted within this travel distance.
-            </p>
-          </div>
-
-          {/* 5. Bio Area */}
+          {/* 4. Bio Area */}
           <div className="flex flex-col gap-1.5 w-full">
             <label className="text-sm font-medium text-navy block">
               Professional Biography
