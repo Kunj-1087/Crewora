@@ -52,7 +52,7 @@ router.delete(
         where: { id: req.user!.id },
         data: {
           isActive: false,
-          email: `deleted_${Date.now()}_${req.user!.id}@deleted.crewora`,
+          phone: `deleted_${Date.now()}_${req.user!.id}`,
         },
       });
       res.json({ success: true, message: 'Account deleted successfully' });

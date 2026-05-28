@@ -21,18 +21,12 @@ model Admin {
 model Customer {
   id                   String    @id @default(uuid())
   name                 String
-  email                String    @unique
-  passwordHash         String
-  phone                String
+  phone                String    @unique
   address              String?
   latitude             Float?
   longitude            Float?
   isVerified           Boolean   @default(false)
   isActive             Boolean   @default(true)
-  loginAttempts        Int       @default(0)
-  lockUntil            DateTime?
-  passwordResetToken   String?
-  passwordResetExpires DateTime?
   refreshTokenHash     String?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
@@ -43,9 +37,7 @@ model Customer {
 model Worker {
   id                          String    @id @default(uuid())
   name                        String
-  email                       String    @unique
-  passwordHash                String
-  phone                       String
+  phone                       String    @unique
   tradeCategories             String[]
   bio                         String?
   experienceYears             Int?
@@ -59,16 +51,23 @@ model Worker {
   verificationStatus          String    @default("pending") // "pending", "approved", "rejected"
   verificationRejectionReason String?
   isActive                    Boolean   @default(true)
-  loginAttempts               Int       @default(0)
-  lockUntil                   DateTime?
   refreshTokenHash            String?
-  passwordResetToken          String?
-  passwordResetExpires        DateTime?
   createdAt                   DateTime  @default(now())
   updatedAt                   DateTime  @updatedAt
   matches                     Match[]
   assignedJobs                Job[]     @relation("WorkerJobs")
   reviews                     Review[]
+}
+
+model Otp {
+  id        String   @id @default(uuid())
+  phone     String
+  code      String
+  userType  String   // "customer" | "worker"
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([phone])
 }
 
 model Job {

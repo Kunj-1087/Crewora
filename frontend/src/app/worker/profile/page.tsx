@@ -148,7 +148,7 @@ export default function WorkerProfilePage() {
           </div>
           <div className="text-left">
             <h2 className="font-extrabold text-slate-900 text-base">{user.name}</h2>
-            <p className="text-xs text-slate-400 mt-0.5">{user.email}</p>
+            <p className="text-xs text-slate-400 mt-0.5">{user.phone}</p>
             <div className="flex items-center gap-1 mt-2 text-[10px] text-amber-500 font-bold bg-amber-50 pl-1 pr-2 py-0.5 rounded-full select-none w-max">
               <Star size={10} className="fill-amber-500" />
               <span>4.9 (42 reviews)</span>

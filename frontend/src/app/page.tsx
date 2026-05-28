@@ -50,7 +50,6 @@ export default function ExplorePage() {
         {
           id: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
           name: 'Sarah Jenkins',
-          email: 'sarah.jenkins@crewora.com',
           phone: '123-456-7890',
           tradeCategories: ['carpenter'] as any,
           bio: 'Certified Master Carpenter specialized in custom furniture, cabinetry, framing, and premium wood finishing.',
@@ -66,7 +65,6 @@ export default function ExplorePage() {
         {
           id: 'b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e',
           name: 'David Chen',
-          email: 'david.chen@crewora.com',
           phone: '123-456-7890',
           tradeCategories: ['electrician', 'hvac'] as any,
           bio: 'Master Electrician specialized in smart home installations and commercial wiring upgrades.',
@@ -82,7 +80,6 @@ export default function ExplorePage() {
         {
           id: 'c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f',
           name: 'Elena Rodriguez',
-          email: 'elena.rodriguez@crewora.com',
           phone: '123-456-7890',
           tradeCategories: ['mason', 'tiler'] as any,
           bio: 'Professional Mason and Tiler with 6+ years experience in bathroom tiling, kitchen backsplashes, and stone patio masonry.',
@@ -98,7 +95,6 @@ export default function ExplorePage() {
         {
           id: 'd4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a',
           name: 'Marcus Thorne',
-          email: 'marcus.thorne@crewora.com',
           phone: '123-456-7890',
           tradeCategories: ['plumber'] as any,
           bio: 'Licensed Plumbing Expert available for emergency diagnostics, pipe replacements, and leak fixes.',

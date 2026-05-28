@@ -5,7 +5,6 @@
 
 import { prisma } from '../../lib/prisma';
 import { AppError } from '../../utils/AppError';
-import { sendEmail, workerApprovedEmail, workerRejectedEmail } from '../../utils/email';
 import { logger } from '../../utils/logger';
 
 export async function getPlatformStats() {
@@ -43,7 +42,6 @@ export async function getVerificationQueue(page: number, limit: number) {
       select: {
         id: true,
         name: true,
-        email: true,
         phone: true,
         tradeCategories: true,
         city: true,
@@ -72,11 +70,7 @@ export async function approveWorker(workerId: string) {
     data: { verificationStatus: 'approved' },
   });
 
-  sendEmail({
-    to: updatedWorker.email,
-    subject: 'Crewora — Your profile has been approved! ✅',
-    html: workerApprovedEmail(updatedWorker.name),
-  }).catch((err) => logger.error('Approval email failed', { err }));
+  logger.info(`Worker approved: ${updatedWorker.name} (${updatedWorker.phone})`);
 
   return updatedWorker;
 }
@@ -93,11 +87,7 @@ export async function rejectWorker(workerId: string, reason: string) {
     },
   });
 
-  sendEmail({
-    to: updatedWorker.email,
-    subject: 'Crewora — Action Required: Profile Update Needed',
-    html: workerRejectedEmail(updatedWorker.name, reason),
-  }).catch((err) => logger.error('Rejection email failed', { err }));
+  logger.info(`Worker rejected: ${updatedWorker.name} (${updatedWorker.phone}). Reason: ${reason}`);
 
   return updatedWorker;
 }
@@ -148,13 +138,13 @@ export async function getAllJobs(page: number, limit: number, status?: string) {
         customer: {
           select: {
             name: true,
-            email: true,
+            phone: true,
           },
         },
         assignedWorker: {
           select: {
             name: true,
-            email: true,
+            phone: true,
           },
         },
       },

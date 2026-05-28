@@ -17,6 +17,28 @@ const REFRESH_COOKIE_OPTIONS = {
 
 // ─── CUSTOMER ─────────────────────────────────────────────────────────────────
 
+export async function sendOtpCustomer(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { phone } = req.body;
+    const otp = await authService.sendOtpCustomer(phone);
+    const data: Record<string, any> = {};
+    if (env.NODE_ENV === 'development') {
+      data.otp = otp;
+    }
+    res.json({
+      success: true,
+      message: 'Verification OTP sent successfully',
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function registerCustomer(
   req: Request,
   res: Response,
@@ -41,8 +63,8 @@ export async function loginCustomer(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { email, password } = req.body;
-    const { customer, accessToken, refreshToken } = await authService.loginCustomer(email, password);
+    const { phone, otp } = req.body;
+    const { customer, accessToken, refreshToken } = await authService.loginCustomer(phone, otp);
     res.cookie('crewora_customer_refresh', refreshToken, REFRESH_COOKIE_OPTIONS);
     res.json({
       success: true,
@@ -88,38 +110,29 @@ export async function logoutCustomer(
   }
 }
 
-export async function forgotPasswordCustomer(
+// ─── WORKER ───────────────────────────────────────────────────────────────────
+
+export async function sendOtpWorker(
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
-    await authService.forgotPasswordCustomer(req.body.email);
-    // Always return success (prevent email enumeration)
+    const { phone } = req.body;
+    const otp = await authService.sendOtpWorker(phone);
+    const data: Record<string, any> = {};
+    if (env.NODE_ENV === 'development') {
+      data.otp = otp;
+    }
     res.json({
       success: true,
-      message: 'If that email exists, a password reset link has been sent.',
+      message: 'Verification OTP sent successfully',
+      data,
     });
   } catch (error) {
     next(error);
   }
 }
-
-export async function resetPasswordCustomer(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const { token, password } = req.body;
-    await authService.resetPasswordCustomer(token, password);
-    res.json({ success: true, message: 'Password reset successful. Please log in again.' });
-  } catch (error) {
-    next(error);
-  }
-}
-
-// ─── WORKER ───────────────────────────────────────────────────────────────────
 
 export async function registerWorker(
   req: Request,
@@ -145,8 +158,8 @@ export async function loginWorker(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { email, password } = req.body;
-    const { worker, accessToken, refreshToken } = await authService.loginWorker(email, password);
+    const { phone, otp } = req.body;
+    const { worker, accessToken, refreshToken } = await authService.loginWorker(phone, otp);
     res.cookie('crewora_worker_refresh', refreshToken, REFRESH_COOKIE_OPTIONS);
     res.json({
       success: true,
@@ -212,39 +225,6 @@ export async function loginAdmin(
   }
 }
 
-// ─── WORKER PASSWORD RESET ────────────────────────────────────────────────────
-
-export async function forgotPasswordWorker(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    await authService.forgotPasswordWorker(req.body.email);
-    // Always return success (prevent email enumeration)
-    res.json({
-      success: true,
-      message: 'If that email exists, a password reset link has been sent.',
-    });
-  } catch (error) {
-    next(error);
-  }
-}
-
-export async function resetPasswordWorker(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
-  try {
-    const { token, password } = req.body;
-    await authService.resetPasswordWorker(token, password);
-    res.json({ success: true, message: 'Password reset successful. Please log in again.' });
-  } catch (error) {
-    next(error);
-  }
-}
-
 export async function registerDeviceToken(
   req: Request,
   res: Response,
@@ -258,4 +238,3 @@ export async function registerDeviceToken(
     next(error);
   }
 }
-

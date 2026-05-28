@@ -6,33 +6,56 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { Phone, Key } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/store/authStore';
 
 const schema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
+  phone: z.string().min(10, 'Phone number must be at least 10 digits').max(15, 'Invalid phone number'),
+  otp: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
 
 export function WorkerLoginForm() {
-  const { loginWorker, isLoading, error, clearError } = useAuthStore();
+  const { sendOtp, loginWorker, isLoading, error, clearError } = useAuthStore();
   const router = useRouter();
-  const [showPassword, setShowPassword] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [devOtp, setDevOtp] = useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<FormData>({ resolver: zodResolver(schema) });
+  const { register, handleSubmit, getValues, setError, formState: { errors } } = useForm<FormData>({ resolver: zodResolver(schema) });
+
+  const handleSendOtp = async () => {
+    clearError();
+    const phone = getValues('phone');
+    if (!phone || phone.length < 10) {
+      setError('phone', { type: 'manual', message: 'Enter a valid 10-digit phone number first' });
+      return;
+    }
+    try {
+      const generatedOtp = await sendOtp(phone, 'worker');
+      setOtpSent(true);
+      if (generatedOtp) {
+        setDevOtp(generatedOtp);
+      }
+    } catch {
+      // Error handled in store
+    }
+  };
 
   const onSubmit = async (data: FormData) => {
     clearError();
+    if (!otpSent) {
+      await handleSendOtp();
+      return;
+    }
+    if (!data.otp || data.otp.length !== 6) {
+      setError('otp', { type: 'manual', message: 'Enter 6-digit OTP code' });
+      return;
+    }
     try {
-      await loginWorker(data.email, data.password);
+      await loginWorker(data.phone, data.otp);
       router.push('/worker/dashboard');
     } catch {
       // Error handled in store
@@ -47,40 +70,60 @@ export function WorkerLoginForm() {
         </div>
       )}
 
-      <Input
-        label="Email Address"
-        type="email"
-        placeholder="you@example.com"
-        leftIcon={<Mail size={16} />}
-        error={errors.email?.message}
-        required
-        {...register('email')}
-      />
+      {devOtp && (
+        <div className="bg-emerald-50 text-emerald-800 text-sm px-4 py-3 rounded-lg border border-emerald-200 animate-fadeIn">
+          <strong>Demo Mode OTP:</strong> {devOtp} (use this code to log in)
+        </div>
+      )}
 
       <Input
-        label="Password"
-        type={showPassword ? 'text' : 'password'}
-        placeholder="Your password"
-        leftIcon={<Lock size={16} />}
-        rightIcon={
+        label="Phone Number"
+        type="tel"
+        placeholder="9876543210"
+        leftIcon={<Phone size={16} />}
+        error={errors.phone?.message}
+        required
+        disabled={otpSent}
+        {...register('phone')}
+      />
+
+      {otpSent && (
+        <Input
+          label="Verification Code (OTP)"
+          type="text"
+          maxLength={6}
+          placeholder="Enter 6-digit OTP"
+          leftIcon={<Key size={16} />}
+          error={errors.otp?.message}
+          required
+          autoFocus
+          {...register('otp')}
+        />
+      )}
+
+      {!otpSent ? (
+        <Button type="button" onClick={handleSendOtp} fullWidth isLoading={isLoading} size="lg" className="mt-4">
+          Send OTP
+        </Button>
+      ) : (
+        <div className="space-y-2 mt-4">
+          <Button type="submit" fullWidth isLoading={isLoading} size="lg">
+            Verify & Sign In
+          </Button>
           <button
             type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="p-0 text-gray-caption hover:text-navy"
+            onClick={() => {
+              setOtpSent(false);
+              setDevOtp(null);
+            }}
+            className="w-full text-center text-xs text-primary-500 hover:underline pt-2"
           >
-            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            Change Phone Number
           </button>
-        }
-        error={errors.password?.message}
-        required
-        {...register('password')}
-      />
+        </div>
+      )}
 
-      <Button type="submit" fullWidth isLoading={isLoading} size="lg" className="mt-6">
-        Sign In
-      </Button>
-
-      <p className="text-center text-sm text-gray-body">
+      <p className="text-center text-sm text-gray-body pt-4">
         Not registered?{' '}
         <Link href="/worker/register" className="text-primary-500 font-medium hover:underline">
           Join as Crew

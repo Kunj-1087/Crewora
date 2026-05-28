@@ -6,7 +6,6 @@
 import { prisma } from '../../lib/prisma';
 import { AppError } from '../../utils/AppError';
 import { assertOwnership } from '../../utils/ownershipCheck';
-import { sendEmail, jobMatchedEmail } from '../../utils/email';
 import { logger } from '../../utils/logger';
 import { sendPushToUser } from '../../utils/notification';
 
@@ -317,11 +316,7 @@ export async function respondToMatch(
         prisma.worker.findUnique({ where: { id: workerId } }),
       ]);
       if (customer && worker) {
-        sendEmail({
-          to: customer.email,
-          subject: 'Crewora — A worker accepted your job!',
-          html: jobMatchedEmail(customer.name, job.title, worker.name),
-        }).catch((err) => logger.error('Match notification email failed', { err }));
+        logger.info(`Worker ${worker.name} accepted job "${job.title}" for customer ${customer.name}`);
 
         // Emit real-time socket event
         if (io) {
@@ -362,7 +357,7 @@ async function matchWorkersForJob(jobId: string, io?: any) {
 
   // Find verified, available workers in the job's trade category within radius
   const workers: any[] = await prisma.$queryRaw`
-    SELECT id, name, email, phone, "tradeCategories", city, availability, "verificationStatus"
+    SELECT id, name, phone, "tradeCategories", city, availability, "verificationStatus"
     FROM "Worker"
     WHERE "verificationStatus" = 'approved'
       AND "availability" = 'available'

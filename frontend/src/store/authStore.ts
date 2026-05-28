@@ -18,21 +18,20 @@ interface AuthState {
   error: string | null;
 
   // Actions
-  loginCustomer: (email: string, password: string) => Promise<void>;
-  loginWorker: (email: string, password: string) => Promise<void>;
+  sendOtp: (phone: string, userType: 'customer' | 'worker') => Promise<string | undefined>;
+  loginCustomer: (phone: string, otp: string) => Promise<void>;
+  loginWorker: (phone: string, otp: string) => Promise<void>;
   registerCustomer: (data: {
     name: string;
-    email: string;
-    password: string;
     phone: string;
+    otp: string;
   }) => Promise<void>;
   registerWorker: (data: {
     name: string;
-    email: string;
-    password: string;
     phone: string;
     tradeCategories: string[];
     city: string;
+    otp: string;
   }) => Promise<void>;
   logout: () => Promise<void>;
   initializeAuth: () => Promise<void>;
@@ -53,10 +52,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (current) set({ user: { ...current, ...updates } as AuthUser });
   },
 
-  loginCustomer: async (email, password) => {
+  sendOtp: async (phone, userType) => {
     set({ isLoading: true, error: null });
     try {
-      const { data } = await apiClient.post('/auth/customer/login', { email, password });
+      const { data } = await apiClient.post(`/auth/${userType}/send-otp`, { phone });
+      set({ isLoading: false });
+      return data.data?.otp; // In development mode, the OTP is returned for testing convenience.
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to send OTP';
+      set({ error: message, isLoading: false });
+      throw err;
+    }
+  },
+
+  loginCustomer: async (phone, otp) => {
+    set({ isLoading: true, error: null });
+    try {
+      const { data } = await apiClient.post('/auth/customer/login', { phone, otp });
       const { user, accessToken } = data.data;
       tokenStore.setToken(accessToken, 'customer');
       set({ user: { ...user, role: 'customer' }, isLoading: false });
@@ -67,10 +79,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  loginWorker: async (email, password) => {
+  loginWorker: async (phone, otp) => {
     set({ isLoading: true, error: null });
     try {
-      const { data } = await apiClient.post('/auth/worker/login', { email, password });
+      const { data } = await apiClient.post('/auth/worker/login', { phone, otp });
       const { user, accessToken } = data.data;
       tokenStore.setToken(accessToken, 'worker');
       set({ user: { ...user, role: 'worker' }, isLoading: false });
@@ -130,7 +142,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       // Try customer first, then worker
       try {
-        // Set short timeout (4000ms) to prevent page lock-ups if the API is slow/unreachable
         const { data } = await apiClient.post('/auth/customer/refresh', null, { timeout: 4000 });
         tokenStore.setToken(data.data.accessToken, 'customer');
         const profileRes = await apiClient.get('/customers/me', { timeout: 4000 });
@@ -141,7 +152,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       try {
-        // Set short timeout (4000ms) to prevent page lock-ups if the API is slow/unreachable
         const { data } = await apiClient.post('/auth/worker/refresh', null, { timeout: 4000 });
         tokenStore.setToken(data.data.accessToken, 'worker');
         const profileRes = await apiClient.get('/workers/me', { timeout: 4000 });

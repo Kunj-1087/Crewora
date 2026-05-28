@@ -9,11 +9,10 @@ import { authRateLimiter } from '../../middleware/rateLimiter';
 import { requireAuth } from '../../middleware/requireAuth';
 import * as authController from './auth.controller';
 import {
+  sendOtpSchema,
   customerRegisterSchema,
   workerRegisterSchema,
   loginSchema,
-  forgotPasswordSchema,
-  resetPasswordSchema,
   adminLoginSchema,
   deviceTokenSchema,
 } from './auth.schemas';
@@ -21,6 +20,13 @@ import {
 const router = Router();
 
 // ─── Customer Auth ────────────────────────────────────────────────────────────
+router.post(
+  '/customer/send-otp',
+  authRateLimiter,
+  validate({ body: sendOtpSchema }),
+  authController.sendOtpCustomer
+);
+
 router.post(
   '/customer/register',
   authRateLimiter,
@@ -43,21 +49,14 @@ router.post(
   authController.logoutCustomer
 );
 
-router.post(
-  '/customer/forgot-password',
-  authRateLimiter,
-  validate({ body: forgotPasswordSchema }),
-  authController.forgotPasswordCustomer
-);
-
-router.post(
-  '/customer/reset-password',
-  authRateLimiter,
-  validate({ body: resetPasswordSchema }),
-  authController.resetPasswordCustomer
-);
-
 // ─── Worker Auth ──────────────────────────────────────────────────────────────
+router.post(
+  '/worker/send-otp',
+  authRateLimiter,
+  validate({ body: sendOtpSchema }),
+  authController.sendOtpWorker
+);
+
 router.post(
   '/worker/register',
   authRateLimiter,
@@ -76,20 +75,6 @@ router.post('/worker/refresh', authRateLimiter, authController.refreshWorkerToke
 
 router.post('/worker/logout', requireAuth('worker'), authController.logoutWorker);
 
-router.post(
-  '/worker/forgot-password',
-  authRateLimiter,
-  validate({ body: forgotPasswordSchema }),
-  authController.forgotPasswordWorker
-);
-
-router.post(
-  '/worker/reset-password',
-  authRateLimiter,
-  validate({ body: resetPasswordSchema }),
-  authController.resetPasswordWorker
-);
-
 // ─── Admin Auth ───────────────────────────────────────────────────────────────
 router.post(
   '/admin/login',
@@ -106,4 +91,3 @@ router.post(
 );
 
 export default router;
-

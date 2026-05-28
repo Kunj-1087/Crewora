@@ -129,7 +129,7 @@ export default function CustomerProfilePage() {
           </div>
           <div className="text-left">
             <h2 className="font-extrabold text-slate-900 text-base">{user.name}</h2>
-            <p className="text-xs text-slate-400 mt-0.5">{user.email}</p>
+            <p className="text-xs text-slate-400 mt-0.5">{user.phone}</p>
             <span className="inline-block mt-2 bg-emerald-50 text-emerald-600 font-bold px-2 py-0.5 rounded text-[10px] uppercase border border-emerald-100">
               Customer Account
             </span>

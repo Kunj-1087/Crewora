@@ -22,7 +22,7 @@ export interface Customer {
   id: string;
   _id?: string;
   name: string;
-  email: string;
+  email?: string;
   phone: string;
   address?: string;
   profilePhoto?: string;
@@ -36,7 +36,7 @@ export interface Worker {
   id: string;
   _id?: string;
   name: string;
-  email: string;
+  email?: string;
   phone: string;
   tradeCategories: TradeCategory[];
   bio?: string;

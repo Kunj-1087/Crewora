@@ -6,39 +6,67 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Eye, EyeOff, Mail, Lock, User, Phone } from 'lucide-react';
+import { User, Phone, Key } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useAuthStore } from '@/store/authStore';
 
 const schema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Must include an uppercase letter')
-    .regex(/[0-9]/, 'Must include a number'),
   phone: z.string().min(10, 'Phone number must be at least 10 digits'),
+  otp: z.string().optional(),
 });
 
 type FormData = z.infer<typeof schema>;
 
 export function CustomerRegisterForm() {
-  const { registerCustomer, isLoading, error, clearError } = useAuthStore();
+  const { sendOtp, registerCustomer, isLoading, error, clearError } = useAuthStore();
   const router = useRouter();
-  const [showPassword, setShowPassword] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [devOtp, setDevOtp] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
+    getValues,
+    setError,
+    trigger,
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
+  const handleSendOtp = async () => {
+    clearError();
+    const isValid = await trigger(['name', 'phone']);
+    if (!isValid) return;
+
+    const values = getValues();
+    try {
+      const generatedOtp = await sendOtp(values.phone, 'customer');
+      setOtpSent(true);
+      if (generatedOtp) {
+        setDevOtp(generatedOtp);
+      }
+    } catch {
+      // Error handled in store
+    }
+  };
+
   const onSubmit = async (data: FormData) => {
     clearError();
+    if (!otpSent) {
+      await handleSendOtp();
+      return;
+    }
+    if (!data.otp || data.otp.length !== 6) {
+      setError('otp', { type: 'manual', message: 'Enter 6-digit OTP code' });
+      return;
+    }
     try {
-      await registerCustomer(data);
+      await registerCustomer({
+        name: data.name,
+        phone: data.phone,
+        otp: data.otp,
+      });
       router.push('/customer/dashboard');
     } catch {
       // Error handled in store
@@ -53,23 +81,20 @@ export function CustomerRegisterForm() {
         </div>
       )}
 
+      {devOtp && (
+        <div className="bg-emerald-50 text-emerald-800 text-sm px-4 py-3 rounded-lg border border-emerald-200 animate-fadeIn">
+          <strong>Demo Mode OTP:</strong> {devOtp} (use this code to verify)
+        </div>
+      )}
+
       <Input
         label="Full Name"
         placeholder="Rajesh Kumar"
         leftIcon={<User size={16} />}
         error={errors.name?.message}
         required
+        disabled={otpSent}
         {...register('name')}
-      />
-
-      <Input
-        label="Email Address"
-        type="email"
-        placeholder="you@example.com"
-        leftIcon={<Mail size={16} />}
-        error={errors.email?.message}
-        required
-        {...register('email')}
       />
 
       <Input
@@ -79,34 +104,47 @@ export function CustomerRegisterForm() {
         leftIcon={<Phone size={16} />}
         error={errors.phone?.message}
         required
+        disabled={otpSent}
         {...register('phone')}
       />
 
-      <Input
-        label="Password"
-        type={showPassword ? 'text' : 'password'}
-        placeholder="At least 8 characters"
-        leftIcon={<Lock size={16} />}
-        rightIcon={
+      {otpSent && (
+        <Input
+          label="Verification Code (OTP)"
+          type="text"
+          maxLength={6}
+          placeholder="Enter 6-digit OTP"
+          leftIcon={<Key size={16} />}
+          error={errors.otp?.message}
+          required
+          autoFocus
+          {...register('otp')}
+        />
+      )}
+
+      {!otpSent ? (
+        <Button type="button" onClick={handleSendOtp} fullWidth isLoading={isLoading} size="lg" className="mt-6">
+          Send OTP
+        </Button>
+      ) : (
+        <div className="space-y-2 mt-6">
+          <Button type="submit" fullWidth isLoading={isLoading} size="lg">
+            Verify & Create Account
+          </Button>
           <button
             type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="p-0 text-gray-caption hover:text-navy"
+            onClick={() => {
+              setOtpSent(false);
+              setDevOtp(null);
+            }}
+            className="w-full text-center text-xs text-primary-500 hover:underline pt-2"
           >
-            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            Change Phone / Name
           </button>
-        }
-        error={errors.password?.message}
-        hint="Min. 8 characters, 1 uppercase, 1 number"
-        required
-        {...register('password')}
-      />
+        </div>
+      )}
 
-      <Button type="submit" fullWidth isLoading={isLoading} size="lg" className="mt-6">
-        Create Account
-      </Button>
-
-      <p className="text-center text-sm text-gray-body">
+      <p className="text-center text-sm text-gray-body pt-4">
         Already have an account?{' '}
         <Link href="/customer/login" className="text-primary-500 font-medium hover:underline">
           Sign In

@@ -1,52 +1,95 @@
 /**
  * Auth Service — Business Logic Layer
- * Handles registration, login, token refresh, password reset.
+ * Handles registration, login, token refresh, OTP sending/verification.
  * Completely decoupled from HTTP layer.
  */
 
 import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
 import { prisma } from '../../lib/prisma';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../utils/jwt';
 import { AppError } from '../../utils/AppError';
-import {
-  comparePassword,
-  isLocked,
-  incrementLoginAttempts,
-  resetLoginAttempts,
-} from '../../utils/authHelpers';
-import {
-  sendEmail,
-  welcomeCustomerEmail,
-  welcomeWorkerEmail,
-  passwordResetEmail,
-} from '../../utils/email';
-import { logger } from '../../utils/logger';
+import { sendOtpSms } from '../../utils/sms';
 
-const BCRYPT_ROUNDS = 12;
+const OTP_EXPIRY_MINUTES = 5;
+
+// ─── OTP HELPERS ──────────────────────────────────────────────────────────────
+
+/**
+ * Generates and stores a verification OTP for the given phone number.
+ */
+async function generateAndStoreOtp(phone: string, userType: 'customer' | 'worker'): Promise<string> {
+  // Generate 6-digit code
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+
+  // Clean up any existing OTPs for this phone number
+  await prisma.otp.deleteMany({
+    where: { phone },
+  });
+
+  // Create new OTP record
+  await prisma.otp.create({
+    data: {
+      phone,
+      code,
+      userType,
+      expiresAt,
+    },
+  });
+
+  // Trigger SMS sending (mock logger)
+  await sendOtpSms(phone, code);
+
+  return code;
+}
+
+/**
+ * Verifies and consumes the OTP. Throws AppError if invalid/expired.
+ */
+async function verifyAndConsumeOtp(phone: string, code: string, userType: 'customer' | 'worker'): Promise<void> {
+  const otpRecord = await prisma.otp.findFirst({
+    where: {
+      phone,
+      code,
+      userType,
+      expiresAt: { gt: new Date() },
+    },
+  });
+
+  if (!otpRecord) {
+    throw new AppError('Invalid or expired OTP', 400, 'INVALID_OTP');
+  }
+
+  // Consume OTP by deleting it
+  await prisma.otp.delete({
+    where: { id: otpRecord.id },
+  });
+}
 
 // ─── CUSTOMER AUTH ────────────────────────────────────────────────────────────
 
+export async function sendOtpCustomer(phone: string): Promise<string> {
+  return generateAndStoreOtp(phone, 'customer');
+}
+
 export async function registerCustomer(data: {
   name: string;
-  email: string;
-  password: string;
   phone: string;
+  otp: string;
 }) {
+  // Verify OTP
+  await verifyAndConsumeOtp(data.phone, data.otp, 'customer');
+
   const existing = await prisma.customer.findUnique({
-    where: { email: data.email.trim().toLowerCase() },
+    where: { phone: data.phone },
   });
   if (existing) {
-    throw new AppError('Email already registered', 409, 'EMAIL_EXISTS');
+    throw new AppError('Phone number already registered', 409, 'PHONE_EXISTS');
   }
-
-  const passwordHash = await bcrypt.hash(data.password, BCRYPT_ROUNDS);
 
   const customer = await prisma.customer.create({
     data: {
       name: data.name,
-      email: data.email.trim().toLowerCase(),
-      passwordHash,
       phone: data.phone,
     },
   });
@@ -73,41 +116,20 @@ export async function registerCustomer(data: {
     data: { refreshTokenHash },
   });
 
-  // Send welcome email (non-blocking)
-  sendEmail({
-    to: customer.email,
-    subject: 'Welcome to Crewora!',
-    html: welcomeCustomerEmail(customer.name),
-  }).catch((err) => logger.error('Welcome email failed', { err }));
-
   return { customer, accessToken, refreshToken };
 }
 
-export async function loginCustomer(email: string, password: string) {
+export async function loginCustomer(phone: string, otp: string) {
+  // Verify OTP
+  await verifyAndConsumeOtp(phone, otp, 'customer');
+
   const customer = await prisma.customer.findUnique({
-    where: { email: email.trim().toLowerCase() },
+    where: { phone },
   });
 
   if (!customer || !customer.isActive) {
-    throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
+    throw new AppError('Account not found. Please register first.', 401, 'USER_NOT_FOUND');
   }
-
-  if (isLocked(customer.lockUntil)) {
-    throw new AppError(
-      'Account temporarily locked due to multiple failed attempts. Try again in 15 minutes.',
-      423,
-      'ACCOUNT_LOCKED'
-    );
-  }
-
-  const isPasswordValid = await comparePassword(password, customer.passwordHash);
-
-  if (!isPasswordValid) {
-    await incrementLoginAttempts('customer', customer.id, customer.loginAttempts, customer.lockUntil);
-    throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
-  }
-
-  await resetLoginAttempts('customer', customer.id);
 
   const accessToken = signAccessToken(customer.id, 'customer');
   const refreshToken = signRefreshToken(customer.id, 'customer');
@@ -168,28 +190,30 @@ export async function logoutCustomer(customerId: string) {
 
 // ─── WORKER AUTH ──────────────────────────────────────────────────────────────
 
+export async function sendOtpWorker(phone: string): Promise<string> {
+  return generateAndStoreOtp(phone, 'worker');
+}
+
 export async function registerWorker(data: {
   name: string;
-  email: string;
-  password: string;
   phone: string;
+  otp: string;
   tradeCategories: string[];
   city: string;
 }) {
+  // Verify OTP
+  await verifyAndConsumeOtp(data.phone, data.otp, 'worker');
+
   const existing = await prisma.worker.findUnique({
-    where: { email: data.email.trim().toLowerCase() },
+    where: { phone: data.phone },
   });
   if (existing) {
-    throw new AppError('Email already registered', 409, 'EMAIL_EXISTS');
+    throw new AppError('Phone number already registered', 409, 'PHONE_EXISTS');
   }
-
-  const passwordHash = await bcrypt.hash(data.password, BCRYPT_ROUNDS);
 
   const worker = await prisma.worker.create({
     data: {
       name: data.name,
-      email: data.email.trim().toLowerCase(),
-      passwordHash,
       phone: data.phone,
       tradeCategories: data.tradeCategories,
       city: data.city,
@@ -215,40 +239,20 @@ export async function registerWorker(data: {
     data: { refreshTokenHash },
   });
 
-  sendEmail({
-    to: worker.email,
-    subject: 'Welcome to Crewora — Profile Under Review',
-    html: welcomeWorkerEmail(worker.name),
-  }).catch((err) => logger.error('Worker welcome email failed', { err }));
-
   return { worker, accessToken, refreshToken };
 }
 
-export async function loginWorker(email: string, password: string) {
+export async function loginWorker(phone: string, otp: string) {
+  // Verify OTP
+  await verifyAndConsumeOtp(phone, otp, 'worker');
+
   const worker = await prisma.worker.findUnique({
-    where: { email: email.trim().toLowerCase() },
+    where: { phone },
   });
 
   if (!worker || !worker.isActive) {
-    throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
+    throw new AppError('Account not found. Please register first.', 401, 'USER_NOT_FOUND');
   }
-
-  if (isLocked(worker.lockUntil)) {
-    throw new AppError(
-      'Account temporarily locked due to multiple failed attempts. Try again in 15 minutes.',
-      423,
-      'ACCOUNT_LOCKED'
-    );
-  }
-
-  const isPasswordValid = await comparePassword(password, worker.passwordHash);
-
-  if (!isPasswordValid) {
-    await incrementLoginAttempts('worker', worker.id, worker.loginAttempts, worker.lockUntil);
-    throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
-  }
-
-  await resetLoginAttempts('worker', worker.id);
 
   const accessToken = signAccessToken(worker.id, 'worker');
   const refreshToken = signRefreshToken(worker.id, 'worker');
@@ -315,7 +319,7 @@ export async function loginAdmin(email: string, password: string) {
     throw new AppError('Invalid credentials', 401);
   }
 
-  const isPasswordValid = await comparePassword(password, admin.passwordHash);
+  const isPasswordValid = await bcrypt.compare(password, admin.passwordHash);
   if (!isPasswordValid) {
     throw new AppError('Invalid credentials', 401);
   }
@@ -329,112 +333,6 @@ export async function loginAdmin(email: string, password: string) {
   return { admin, accessToken };
 }
 
-// ─── PASSWORD RESET ───────────────────────────────────────────────────────────
-
-export async function forgotPasswordCustomer(email: string) {
-  const customer = await prisma.customer.findUnique({
-    where: { email: email.trim().toLowerCase() },
-  });
-
-  // Always return success to prevent email enumeration
-  if (!customer) return;
-
-  const resetToken = crypto.randomBytes(32).toString('hex');
-  const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-
-  await prisma.customer.update({
-    where: { id: customer.id },
-    data: { passwordResetToken: resetTokenHash, passwordResetExpires: expiresAt },
-  });
-
-  sendEmail({
-    to: customer.email,
-    subject: 'Crewora — Password Reset Request',
-    html: passwordResetEmail(customer.name, resetToken),
-  }).catch((err) => logger.error('Reset email failed', { err }));
-}
-
-export async function resetPasswordCustomer(token: string, newPassword: string) {
-  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-
-  const customer = await prisma.customer.findFirst({
-    where: {
-      passwordResetToken: tokenHash,
-      passwordResetExpires: { gt: new Date() },
-    },
-  });
-
-  if (!customer) {
-    throw new AppError('Invalid or expired reset token', 400);
-  }
-
-  const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
-
-  await prisma.customer.update({
-    where: { id: customer.id },
-    data: {
-      passwordHash,
-      passwordResetToken: null,
-      passwordResetExpires: null,
-      refreshTokenHash: null,
-    },
-  });
-}
-
-// ─── WORKER PASSWORD RESET ────────────────────────────────────────────────────
-
-export async function forgotPasswordWorker(email: string) {
-  const worker = await prisma.worker.findUnique({
-    where: { email: email.trim().toLowerCase() },
-  });
-
-  // Always return success to prevent email enumeration
-  if (!worker) return;
-
-  const resetToken = crypto.randomBytes(32).toString('hex');
-  const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-
-  await prisma.worker.update({
-    where: { id: worker.id },
-    data: { passwordResetToken: resetTokenHash, passwordResetExpires: expiresAt },
-  });
-
-  sendEmail({
-    to: worker.email,
-    subject: 'Crewora — Password Reset Request',
-    html: passwordResetEmail(worker.name, resetToken),
-  }).catch((err) => logger.error('Worker reset email failed', { err }));
-}
-
-export async function resetPasswordWorker(token: string, newPassword: string) {
-  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-
-  const worker = await prisma.worker.findFirst({
-    where: {
-      passwordResetToken: tokenHash,
-      passwordResetExpires: { gt: new Date() },
-    },
-  });
-
-  if (!worker) {
-    throw new AppError('Invalid or expired reset token', 400);
-  }
-
-  const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
-
-  await prisma.worker.update({
-    where: { id: worker.id },
-    data: {
-      passwordHash,
-      passwordResetToken: null,
-      passwordResetExpires: null,
-      refreshTokenHash: null,
-    },
-  });
-}
-
 export async function registerDeviceToken(userId: string, userType: string, token: string) {
   return await prisma.deviceToken.upsert({
     where: { token },
@@ -442,4 +340,3 @@ export async function registerDeviceToken(userId: string, userType: string, toke
     create: { userId, userType, token },
   });
 }
-
