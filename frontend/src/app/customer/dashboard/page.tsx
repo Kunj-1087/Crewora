@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useSocket } from '@/contexts/SocketContext';
 import apiClient from '@/lib/api/client';
 import { Job } from '@/types';
+import { FeedbackModal } from '@/components/ui/FeedbackModal';
 
 export default function CustomerDashboard() {
   const { user, isInitialized } = useAuthStore();
@@ -17,6 +18,8 @@ export default function CustomerDashboard() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [conversations, setConversations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   // Listen for job acceptance via Socket.io in real-time
   useEffect(() => {
@@ -55,6 +58,20 @@ export default function CustomerDashboard() {
       }
     }
   }, [user, isInitialized, router]);
+
+  const handleWorkDoneClick = (jobId: string) => {
+    setSelectedJobId(jobId);
+    setIsFeedbackOpen(true);
+  };
+
+  const handleFeedbackSubmit = async (rating: number, comment: string) => {
+    if (!selectedJobId) return;
+    await apiClient.post(`/jobs/${selectedJobId}/complete`, {
+      rating,
+      comment
+    });
+    fetchJobs();
+  };
 
   const fetchJobs = useCallback(async () => {
     if (!user || user.role !== 'customer') return;
@@ -179,13 +196,30 @@ export default function CustomerDashboard() {
 
                   {/* Assigned Contractor details */}
                   {(job as any).assignedWorker ? (
-                    <div className="border-t border-slate-50 pt-3 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-bold text-slate-700">Contractor: {(job as any).assignedWorker.name}</span>
+                    <div className="border-t border-slate-50 pt-3 flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-bold text-slate-700">Contractor: {(job as any).assignedWorker.name}</span>
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          {new Date(job.createdAt).toLocaleDateString()}
+                        </span>
                       </div>
-                      <span className="text-[10px] text-slate-400 font-medium">
-                        {new Date(job.createdAt).toLocaleDateString()}
-                      </span>
+                      
+                      {(job.status === 'matched' || job.status === 'in_progress') && (
+                        <div className="flex gap-2 mt-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleWorkDoneClick(job.id);
+                            }}
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-extrabold text-xs shadow-sm transition-colors text-center select-none border-none outline-none"
+                          >
+                            <CheckCircle2 size={12} className="stroke-[2.5]" />
+                            <span>Work Done</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="border-t border-slate-50 pt-3 flex items-center justify-between text-[10px] text-slate-400 font-medium">
@@ -257,8 +291,12 @@ export default function CustomerDashboard() {
             No recent payments. Complete bookings with matching workers to initiate escrow payments.
           </div>
         </div>
-
       </div>
+      <FeedbackModal
+        isOpen={isFeedbackOpen}
+        onClose={() => setIsFeedbackOpen(false)}
+        onSubmit={handleFeedbackSubmit}
+      />
     </div>
   );
 }

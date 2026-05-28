@@ -14,6 +14,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { JobCardSkeleton } from '@/components/ui/Skeleton';
 import { useSocket } from '@/contexts/SocketContext';
+import { FeedbackModal } from '@/components/ui/FeedbackModal';
 
 type AvailabilityType = 'available' | 'unavailable' | 'on_a_job';
 type TabType = 'pending' | 'accepted';
@@ -32,6 +33,10 @@ export default function WorkerDashboard() {
   const [changingStatus, setChangingStatus] = useState(false);
   const [actioningMatchId, setActioningMatchId] = useState<string | null>(null);
   const [successMatch, setSuccessMatch] = useState<any | null>(null);
+  
+  const [hasActiveJob, setHasActiveJob] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   // Sync dashboard if match was accepted/declined via toast notification
   useEffect(() => {
@@ -115,6 +120,24 @@ export default function WorkerDashboard() {
     }
   }, [user]);
 
+  const checkActiveJobs = useCallback(async () => {
+    if (!user || user.role !== 'worker') return;
+    try {
+      const { data } = await apiClient.get('/jobs/worker/feed', {
+        params: { status: 'accepted' }
+      });
+      setHasActiveJob(data.data.jobs && data.data.jobs.length > 0);
+    } catch (err) {
+      console.error('Failed to check active jobs:', err);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user && user.role === 'worker') {
+      checkActiveJobs();
+    }
+  }, [user, checkActiveJobs]);
+
   useEffect(() => {
     if (user && user.role === 'worker') {
       fetchFeed(activeTab);
@@ -149,6 +172,7 @@ export default function WorkerDashboard() {
         // Find match object locally to display success
         const matchedJob = feed.find(item => item.id === matchId);
         setSuccessMatch(matchedJob);
+        setHasActiveJob(true);
         // Toggle tab to active
         setActiveTab('accepted');
       } else {
@@ -161,6 +185,21 @@ export default function WorkerDashboard() {
     } finally {
       setActioningMatchId(null);
     }
+  };
+
+  const handleWorkDoneClick = (jobId: string) => {
+    setSelectedJobId(jobId);
+    setIsFeedbackOpen(true);
+  };
+
+  const handleFeedbackSubmit = async (rating: number, comment: string) => {
+    if (!selectedJobId) return;
+    await apiClient.post(`/jobs/${selectedJobId}/complete`, {
+      rating,
+      comment
+    });
+    setHasActiveJob(false);
+    fetchFeed(activeTab);
   };
 
   if (!isInitialized || !user || user.role !== 'worker') {
@@ -264,6 +303,19 @@ export default function WorkerDashboard() {
           </button>
         </div>
 
+        {/* Warning Banner if has active job */}
+        {activeTab === 'pending' && hasActiveJob && (
+          <div className="mb-4 bg-amber-50 border border-amber-100 rounded-2xl p-4 flex gap-3 text-amber-950 animate-fadeIn shrink-0 select-none">
+            <Info className="text-amber-500 shrink-0 mt-0.5" size={18} />
+            <div className="text-xs">
+              <span className="font-bold block">Active Job In Progress</span>
+              <p className="mt-1 opacity-90">
+                You have an active job in progress. You must mark it as <strong>"Work Done"</strong> under the Active Jobs tab before you can accept any new invitations.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Dynamic Success Match banner */}
         {successMatch && (
           <div className="mb-4 bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex gap-3 text-emerald-950 animate-fadeIn shrink-0 select-none">
@@ -356,13 +408,23 @@ export default function WorkerDashboard() {
                         </span>
                       </div>
                       
-                      <a
-                        href={`tel:${job.customer.phone}`}
-                        className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs shadow-sm transition-colors text-center select-none"
-                      >
-                        <Phone size={12} />
-                        <span>Call Client ({job.customer.phone})</span>
-                      </a>
+                      <div className="flex gap-2">
+                        <a
+                          href={`tel:${job.customer.phone}`}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-slate-850 hover:bg-slate-900 text-white font-bold text-xs shadow-sm transition-colors text-center select-none"
+                        >
+                          <Phone size={12} />
+                          <span>Call Client</span>
+                        </a>
+
+                        <button
+                          onClick={() => handleWorkDoneClick(job.id)}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs shadow-sm transition-colors text-center select-none"
+                        >
+                          <Check size={12} className="stroke-[2.5]" />
+                          <span>Work Done</span>
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -381,7 +443,7 @@ export default function WorkerDashboard() {
                       <Button
                         onClick={() => handleMatchResponse(match.id, 'accept')}
                         isLoading={actioningMatchId === match.id}
-                        disabled={actioningMatchId !== null}
+                        disabled={actioningMatchId !== null || hasActiveJob}
                         variant="primary"
                         leftIcon={<Check size={14} />}
                         className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold rounded-xl"
@@ -396,6 +458,11 @@ export default function WorkerDashboard() {
           )}
         </div>
       </div>
+      <FeedbackModal
+        isOpen={isFeedbackOpen}
+        onClose={() => setIsFeedbackOpen(false)}
+        onSubmit={handleFeedbackSubmit}
+      />
     </div>
   );
 }

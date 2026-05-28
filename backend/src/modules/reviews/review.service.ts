@@ -35,7 +35,12 @@ export async function createReview(
 
   // Prevent double reviews
   const existingReview = await prisma.review.findUnique({
-    where: { jobId },
+    where: {
+      jobId_reviewer: {
+        jobId,
+        reviewer: 'customer',
+      },
+    },
   });
 
   if (existingReview) {
@@ -74,7 +79,7 @@ export async function getWorkerReviews(
 
   const [reviews, aggregate, total] = await Promise.all([
     prisma.review.findMany({
-      where: { workerId },
+      where: { workerId, reviewer: 'customer' },
       include: {
         customer: {
           select: {
@@ -87,11 +92,11 @@ export async function getWorkerReviews(
       take: limit,
     }),
     prisma.review.aggregate({
-      where: { workerId },
+      where: { workerId, reviewer: 'customer' },
       _avg: { rating: true },
       _count: { id: true },
     }),
-    prisma.review.count({ where: { workerId } }),
+    prisma.review.count({ where: { workerId, reviewer: 'customer' } }),
   ]);
 
   const averageRating = aggregate._avg.rating ? parseFloat(aggregate._avg.rating.toFixed(1)) : 0.0;

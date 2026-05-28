@@ -61,4 +61,17 @@ router.post(
   jobController.respondToMatch
 );
 
+router.post(
+  '/:id/complete',
+  requireAuth('customer', 'worker'),
+  validate({
+    params: z.object({ id: z.string().uuid() }),
+    body: z.object({
+      rating: z.number().int().min(1).max(5),
+      comment: z.string().max(500).optional(),
+    }),
+  }),
+  jobController.completeJob
+);
+
 export default router;

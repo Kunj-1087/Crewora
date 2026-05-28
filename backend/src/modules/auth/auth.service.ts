@@ -217,6 +217,7 @@ export async function registerWorker(data: {
       phone: data.phone,
       tradeCategories: data.tradeCategories,
       city: data.city,
+      verificationStatus: process.env.NODE_ENV === 'development' ? 'approved' : 'pending',
     },
   });
 
@@ -246,12 +247,18 @@ export async function loginWorker(phone: string, otp: string) {
   // Verify OTP
   await verifyAndConsumeOtp(phone, otp, 'worker');
 
-  const worker = await prisma.worker.findUnique({
+  let worker = await prisma.worker.findUnique({
     where: { phone },
   });
+  if (!worker) throw new AppError('Worker not found', 404);
+  if (!worker.isActive) throw new AppError('Account is deactivated', 403);
 
-  if (!worker || !worker.isActive) {
-    throw new AppError('Account not found. Please register first.', 401, 'USER_NOT_FOUND');
+  // In development, auto-approve the worker on login if they are pending
+  if (process.env.NODE_ENV === 'development' && worker.verificationStatus !== 'approved') {
+    worker = await prisma.worker.update({
+      where: { id: worker.id },
+      data: { verificationStatus: 'approved' },
+    });
   }
 
   const accessToken = signAccessToken(worker.id, 'worker');

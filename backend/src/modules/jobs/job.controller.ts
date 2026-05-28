@@ -54,3 +54,12 @@ export async function respondToMatch(req: Request, res: Response, next: NextFunc
     res.json({ success: true, message: `Job ${action}ed`, data: { match } });
   } catch (error) { next(error); }
 }
+
+export async function completeJob(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { id } = req.params;
+    const { rating, comment } = req.body as { rating: number; comment?: string };
+    const result = await jobService.completeJob(id, req.user!.id, req.user!.type as 'customer' | 'worker', { rating, comment });
+    res.json({ success: true, message: 'Job completed and reviewed successfully', data: result });
+  } catch (error) { next(error); }
+}

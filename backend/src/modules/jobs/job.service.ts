@@ -113,7 +113,7 @@ export async function getJobById(jobId: string, requestingUserId: string, userTy
           phone: true,
         },
       },
-      review: true,
+      reviews: true,
     },
   });
 
@@ -279,6 +279,19 @@ export async function respondToMatch(
     throw new AppError('This match has already been responded to', 400);
   }
 
+  if (action === 'accept') {
+    const activeJob = await prisma.job.findFirst({
+      where: {
+        assignedWorkerId: workerId,
+        status: { in: ['matched', 'in_progress'] }
+      }
+    });
+
+    if (activeJob) {
+      throw new AppError('You cannot accept a new job until your current active job is completed.', 400);
+    }
+  }
+
   const updatedStatus = action === 'accept' ? 'accepted' : 'declined';
   const respondedAt = new Date();
 
@@ -355,19 +368,34 @@ async function matchWorkersForJob(jobId: string, io?: any) {
   const lng = job.longitude;
   const radiusKm = MAX_MATCH_RADIUS_METERS / 1000; // 30 km
 
-  // Find verified, available workers in the job's trade category within radius
-  const workers: any[] = await prisma.$queryRaw`
-    SELECT id, name, phone, "tradeCategories", city, availability, "verificationStatus"
-    FROM "Worker"
-    WHERE "verificationStatus" = 'approved'
-      AND "availability" = 'available'
-      AND "isActive" = true
-      AND ${job.tradeCategory} = ANY("tradeCategories")
-      AND "latitude" IS NOT NULL AND "longitude" IS NOT NULL
-      AND (6371 * acos(cos(radians(${lat})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${lng})) + sin(radians(${lat})) * sin(radians(latitude)))) < ${radiusKm}
-    ORDER BY (6371 * acos(cos(radians(${lat})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${lng})) + sin(radians(${lat})) * sin(radians(latitude)))) ASC
-    LIMIT ${MAX_WORKERS_TO_MATCH}
-  `;
+  let workers: any[] = [];
+
+  if (process.env.NODE_ENV === 'development') {
+    // In development mode, match any worker of the matching trade category
+    workers = await prisma.$queryRaw`
+      SELECT id, name, phone, "tradeCategories", city, availability, "verificationStatus"
+      FROM "Worker"
+      WHERE "verificationStatus" = 'approved'
+        AND "availability" = 'available'
+        AND "isActive" = true
+        AND ${job.tradeCategory} = ANY("tradeCategories")
+      LIMIT ${MAX_WORKERS_TO_MATCH}
+    `;
+  } else {
+    // Find verified, available workers in the job's trade category within radius
+    workers = await prisma.$queryRaw`
+      SELECT id, name, phone, "tradeCategories", city, availability, "verificationStatus"
+      FROM "Worker"
+      WHERE "verificationStatus" = 'approved'
+        AND "availability" = 'available'
+        AND "isActive" = true
+        AND ${job.tradeCategory} = ANY("tradeCategories")
+        AND "latitude" IS NOT NULL AND "longitude" IS NOT NULL
+        AND (6371 * acos(cos(radians(${lat})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${lng})) + sin(radians(${lat})) * sin(radians(latitude)))) < ${radiusKm}
+      ORDER BY (6371 * acos(cos(radians(${lat})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${lng})) + sin(radians(${lat})) * sin(radians(latitude)))) ASC
+      LIMIT ${MAX_WORKERS_TO_MATCH}
+    `;
+  }
 
   if (workers.length === 0) {
     logger.info('No workers found for job', { jobId });
@@ -427,4 +455,86 @@ async function matchWorkersForJob(jobId: string, io?: any) {
   } catch (err) {
     logger.error('Failed to create match documents', { jobId, err });
   }
+}
+
+export async function completeJob(
+  jobId: string,
+  userId: string,
+  userType: 'customer' | 'worker',
+  data: { rating: number; comment?: string }
+) {
+  if (data.rating < 1 || data.rating > 5) {
+    throw new AppError('Rating must be between 1 and 5', 400);
+  }
+
+  // Find job
+  const job = await prisma.job.findUnique({
+    where: { id: jobId },
+  });
+
+  if (!job) {
+    throw new AppError('Job not found', 404);
+  }
+
+  // Verify ownership
+  if (userType === 'customer') {
+    if (job.customerId !== userId) {
+      throw new AppError('Not authorized to complete this job', 403);
+    }
+  } else if (userType === 'worker') {
+    if (job.assignedWorkerId !== userId) {
+      throw new AppError('Not authorized to complete this job', 403);
+    }
+  } else {
+    throw new AppError('Invalid user type', 403);
+  }
+
+  // Verify state
+  if (job.status === 'cancelled') {
+    throw new AppError('Cannot complete a cancelled job', 400);
+  }
+
+  // Update status if it is not completed yet
+  let updatedJob = job;
+  if (job.status !== 'completed') {
+    updatedJob = await prisma.job.update({
+      where: { id: jobId },
+      data: {
+        status: 'completed',
+        completedAt: new Date(),
+      },
+    });
+  }
+
+  if (!job.assignedWorkerId) {
+    throw new AppError('No worker was assigned to this job', 400);
+  }
+
+  // Prevent double reviews from the same role
+  const existingReview = await prisma.review.findUnique({
+    where: {
+      jobId_reviewer: {
+        jobId,
+        reviewer: userType,
+      },
+    },
+  });
+
+  if (existingReview) {
+    throw new AppError('You have already submitted feedback for this job', 409);
+  }
+
+  // Create review
+  const review = await prisma.review.create({
+    data: {
+      jobId,
+      customerId: job.customerId,
+      workerId: job.assignedWorkerId,
+      reviewer: userType,
+      rating: data.rating,
+      comment: data.comment || null,
+    },
+  });
+
+  return { job: updatedJob, review };
 }

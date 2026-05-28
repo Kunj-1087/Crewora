@@ -102,7 +102,7 @@ model Job {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   matches            Match[]
-  review             Review?
+  reviews            Review[]
 }
 
 model Match {
@@ -144,14 +144,17 @@ model DeviceToken {
 
 model Review {
   id         String   @id @default(uuid())
-  jobId      String   @unique
+  jobId      String
   job        Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
   customerId String
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   workerId   String
   worker     Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  reviewer   String   @default("customer") // "customer" | "worker"
   rating     Int      // 1 to 5 stars
   comment    String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  @@unique([jobId, reviewer])
 }
