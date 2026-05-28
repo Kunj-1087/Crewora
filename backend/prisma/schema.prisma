@@ -70,6 +70,16 @@ model Otp {
   @@index([phone])
 }
 
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  body      String
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
 model Job {
   id                 String    @id @default(uuid())
   customerId         String

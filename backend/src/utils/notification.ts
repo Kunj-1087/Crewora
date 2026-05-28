@@ -36,6 +36,16 @@ export async function sendPushToUser(
   data?: Record<string, string>
 ): Promise<void> {
   try {
+    // Save to database for persistent notification history
+    await prisma.notification.create({
+      data: {
+        userId,
+        title,
+        body,
+        link: data?.link || null,
+      },
+    });
+
     // Find all device tokens registered for this user
     const deviceTokens = await prisma.deviceToken.findMany({
       where: { userId }

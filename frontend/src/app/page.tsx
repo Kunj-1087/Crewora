@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { 
   Search, Star, CheckCircle, MapPin, Briefcase, ChevronRight, User, AlertCircle
@@ -27,6 +27,16 @@ export default function ExplorePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [error, setError] = useState<string | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('focusSearch') === 'true' && searchInputRef.current) {
+        searchInputRef.current.focus();
+      }
+    }
+  }, []);
 
   const fetchWorkers = async (category: string) => {
     setLoading(true);
@@ -142,6 +152,7 @@ export default function ExplorePage() {
             <Search size={18} />
           </span>
           <input
+            ref={searchInputRef}
             type="text"
             placeholder="Search for professional services..."
             value={searchQuery}

@@ -20,6 +20,14 @@ export function MobileHeader() {
     }
   };
 
+  const handleSearchClick = () => {
+    router.push('/?focusSearch=true');
+  };
+
+  const handleNotificationClick = () => {
+    router.push('/notifications');
+  };
+
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-slate-100 px-4 h-14 flex items-center justify-between shadow-sm select-none shrink-0">
       {/* Left: Hamburger menu and Logo */}
@@ -39,14 +47,20 @@ export function MobileHeader() {
       {/* Right: Actions */}
       <div className="flex items-center gap-2">
         {/* Search icon triggers filter or highlights search bar */}
-        <button className="w-9 h-9 hover:bg-slate-50 text-slate-800 rounded-full flex items-center justify-center transition-colors">
+        <button 
+          onClick={handleSearchClick}
+          className="w-9 h-9 hover:bg-slate-50 text-slate-800 rounded-full flex items-center justify-center transition-colors"
+        >
           <Search size={18} className="stroke-[2.5]" />
         </button>
 
         {user ? (
           <div className="flex items-center gap-1">
             {/* Notification Bell */}
-            <button className="w-8 h-8 hover:bg-slate-50 text-slate-800 rounded-full flex items-center justify-center transition-colors relative">
+            <button 
+              onClick={handleNotificationClick}
+              className="w-8 h-8 hover:bg-slate-50 text-slate-800 rounded-full flex items-center justify-center transition-colors relative"
+            >
               <Bell size={16} />
               <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-accent rounded-full border border-white"></span>
             </button>
