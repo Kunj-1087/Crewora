@@ -148,7 +148,7 @@ export function FeedbackModal({
               type="submit"
               fullWidth
               isLoading={submitting}
-              className="py-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-extrabold text-xs rounded-xl"
+              className="py-3 bg-accent-600 hover:bg-accent-700 active:bg-accent-800 text-white font-extrabold text-xs rounded-xl"
             >
               Submit & Complete Job
             </Button>

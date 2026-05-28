@@ -25,19 +25,19 @@ const config: Config = {
           800: '#050a14',
           900: '#020408',
         },
-        // Accent Color — Mint Green
+        // Accent Color — Royal Blue
         accent: {
-          DEFAULT: '#10b981',
-          50: '#ecfdf5',
-          100: '#d1fae5',
-          200: '#a7f3d0',
-          300: '#6ee7b7',
-          400: '#34d399',
-          500: '#10b981',
-          600: '#059669',
-          700: '#047857',
-          800: '#065f46',
-          900: '#064e3b',
+          DEFAULT: '#2563eb',
+          50: '#f0f6ff',
+          100: '#e0ecff',
+          200: '#c7dcff',
+          300: '#9ec2ff',
+          400: '#6ba0ff',
+          500: '#2563eb',
+          600: '#1d4ed8',
+          700: '#1e40af',
+          800: '#1e3a8a',
+          900: '#172554',
         },
         // Semantic Colors
         success: {

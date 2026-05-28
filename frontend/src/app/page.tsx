@@ -157,7 +157,7 @@ export default function ExplorePage() {
             placeholder="Search for professional services..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-50 hover:bg-slate-100/80 focus:bg-white text-sm text-[#0b1528] placeholder-slate-400 pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:border-[#10b981] focus:ring-1 focus:ring-[#10b981] transition-all outline-none"
+            className="w-full bg-slate-50 hover:bg-slate-100/80 focus:bg-white text-sm text-[#0b1528] placeholder-slate-400 pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 transition-all outline-none"
           />
         </div>
 
@@ -169,7 +169,7 @@ export default function ExplorePage() {
               onClick={() => setSelectedCategory(cat.id)}
               className={`px-4 py-2 rounded-full text-[11px] font-extrabold tracking-wider whitespace-nowrap transition-all duration-150 border uppercase ${
                 selectedCategory === cat.id
-                  ? 'bg-[#10b981] text-white border-[#10b981] shadow-sm'
+                  ? 'bg-accent-600 text-white border-accent-600 shadow-sm'
                   : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
               }`}
             >
@@ -267,7 +267,7 @@ export default function ExplorePage() {
                     </div>
 
                     <div className="border-t border-slate-100 mt-4 pt-4 flex justify-end">
-                      <Link href={`/workers/${worker.id}`} className="inline-flex items-center gap-1 text-xs font-black text-[#0b1528] hover:text-[#10b981] transition-colors">
+                      <Link href={`/workers/${worker.id}`} className="inline-flex items-center gap-1 text-xs font-black text-[#0b1528] hover:text-accent-600 transition-colors">
                         View Profile
                         <ChevronRight size={14} />
                       </Link>
@@ -330,7 +330,7 @@ export default function ExplorePage() {
                     </div>
 
                     <div className="mt-3 flex justify-end">
-                      <Link href={`/workers/${worker.id}`} className="text-[11px] font-extrabold text-[#0b1528] hover:text-[#10b981] transition-colors flex items-center gap-0.5">
+                      <Link href={`/workers/${worker.id}`} className="text-[11px] font-extrabold text-[#0b1528] hover:text-accent-600 transition-colors flex items-center gap-0.5">
                         View Profile
                         <ChevronRight size={12} />
                       </Link>
@@ -344,9 +344,9 @@ export default function ExplorePage() {
 
         {/* ─── Grow Your Team Banner Card (Deep Navy, Mint Green Button) ────────── */}
         <div className="bg-[#0b1528] rounded-2xl p-6 text-white text-left relative overflow-hidden shadow-md select-none mt-6">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-[#10b981]/10 rounded-full blur-2xl"></div>
+          <div className="absolute top-0 right-0 w-24 h-24 bg-accent-500/10 rounded-full blur-2xl"></div>
           <div className="relative space-y-3 max-w-[80%]">
-            <span className="bg-[#10b981]/20 text-[#4ade80] text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
+            <span className="bg-accent-500/20 text-accent-300 text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
               Recruitment
             </span>
             <h3 className="text-base font-black leading-snug">Grow Your Team</h3>
@@ -355,7 +355,7 @@ export default function ExplorePage() {
             </p>
             <div className="pt-2">
               <Link href={user ? '/customer/jobs/create' : '/login'}>
-                <button className="bg-[#10b981] hover:bg-[#059669] text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-sm transition-all active:scale-95">
+                <button className="bg-accent-600 hover:bg-accent-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-sm transition-all active:scale-95 border-none outline-none">
                   Post a Job
                 </button>
               </Link>

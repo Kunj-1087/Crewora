@@ -419,7 +419,7 @@ export default function WorkerDashboard() {
 
                         <button
                           onClick={() => handleWorkDoneClick(job.id)}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-[#10b981] hover:bg-[#059669] text-white font-bold text-xs shadow-sm transition-colors text-center select-none"
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-accent-600 hover:bg-accent-700 text-white font-bold text-xs shadow-sm transition-colors text-center select-none"
                         >
                           <Check size={12} className="stroke-[2.5]" />
                           <span>Work Done</span>
@@ -446,7 +446,7 @@ export default function WorkerDashboard() {
                         disabled={actioningMatchId !== null || hasActiveJob}
                         variant="primary"
                         leftIcon={<Check size={14} />}
-                        className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs font-bold rounded-xl"
+                        className="flex-1 py-2.5 bg-accent-600 hover:bg-accent-700 active:bg-accent-800 text-white text-xs font-bold rounded-xl"
                       >
                         Accept Match
                       </Button>

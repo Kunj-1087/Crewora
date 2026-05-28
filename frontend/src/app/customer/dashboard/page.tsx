@@ -105,7 +105,7 @@ export default function CustomerDashboard() {
   if (!isInitialized || !user || user.role !== 'customer') {
     return (
       <div className="flex-1 flex items-center justify-center bg-slate-50 min-h-screen">
-        <div className="w-8 h-8 border-4 border-[#10b981] border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-4 border-accent-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -121,7 +121,7 @@ export default function CustomerDashboard() {
         </div>
         <button
           onClick={() => router.push('/customer/jobs/create')}
-          className="bg-[#10b981] hover:bg-[#059669] text-white font-extrabold text-xs px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+          className="bg-accent-600 hover:bg-accent-700 text-white font-extrabold text-xs px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
         >
           <Plus size={14} className="stroke-[2.5]" />
           Post Job
@@ -132,13 +132,13 @@ export default function CustomerDashboard() {
         
         {/* ─── Total Monthly Spend Navy Card ────────────────────────────────────── */}
         <div className="bg-[#0b1528] rounded-2xl p-5 text-white shadow-md relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-36 h-36 bg-[#10b981]/15 rounded-full blur-3xl"></div>
+          <div className="absolute top-0 right-0 w-36 h-36 bg-accent-500/15 rounded-full blur-3xl"></div>
           <div className="flex justify-between items-start">
             <div className="space-y-1">
               <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Total Monthly Spend</span>
               <h2 className="text-2xl font-black tracking-tight">$0.00</h2>
             </div>
-            <div className="bg-emerald-500/20 text-[#4ade80] text-[10px] font-extrabold px-2.5 py-1 rounded-full flex items-center gap-0.5">
+            <div className="bg-accent-500/20 text-accent-300 text-[10px] font-extrabold px-2.5 py-1 rounded-full flex items-center gap-0.5">
               <ArrowUpRight size={10} />
               0.0%
             </div>
@@ -151,7 +151,7 @@ export default function CustomerDashboard() {
               <span>0% Used</span>
             </div>
             <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-              <div className="h-full bg-[#10b981] rounded-full" style={{ width: '0%' }}></div>
+              <div className="h-full bg-accent-600 rounded-full" style={{ width: '0%' }}></div>
             </div>
           </div>
         </div>
@@ -178,7 +178,7 @@ export default function CustomerDashboard() {
                 >
                   <div className="flex justify-between items-start gap-2">
                     <div>
-                      <span className="text-[10px] font-extrabold text-[#10b981] bg-emerald-50 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      <span className="text-[10px] font-extrabold text-accent-600 bg-accent-50 px-2 py-0.5 rounded-full uppercase tracking-wider">
                         {job.tradeCategory}
                       </span>
                       <h3 className="font-extrabold text-[#0b1528] text-sm mt-1.5 leading-snug">{job.title}</h3>
@@ -213,7 +213,7 @@ export default function CustomerDashboard() {
                               e.stopPropagation();
                               handleWorkDoneClick(job.id);
                             }}
-                            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#10b981] hover:bg-[#059669] text-white font-extrabold text-xs shadow-sm transition-colors text-center select-none border-none outline-none"
+                            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-accent-600 hover:bg-accent-700 text-white font-extrabold text-xs shadow-sm transition-colors text-center select-none border-none outline-none"
                           >
                             <CheckCircle2 size={12} className="stroke-[2.5]" />
                             <span>Work Done</span>
@@ -239,7 +239,7 @@ export default function CustomerDashboard() {
             <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider">Recent Messages</h2>
             <button 
               onClick={() => router.push('/inbox')}
-              className="text-xs font-bold text-[#10b981] hover:underline"
+              className="text-xs font-bold text-accent-600 hover:underline"
             >
               View Inbox
             </button>
@@ -258,7 +258,7 @@ export default function CustomerDashboard() {
                   className="p-4 flex gap-3 hover:bg-slate-50 transition-colors cursor-pointer relative"
                 >
                   {c.unread && (
-                    <span className="absolute top-4 left-4 w-2.5 h-2.5 bg-[#10b981] rounded-full border-2 border-white"></span>
+                    <span className="absolute top-4 left-4 w-2.5 h-2.5 bg-accent-600 rounded-full border-2 border-white"></span>
                   )}
                   
                   {/* eslint-disable-next-line @next/next/no-img-element */}
