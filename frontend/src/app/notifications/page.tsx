@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -29,7 +29,7 @@ export default function NotificationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     setError(null);
@@ -42,7 +42,7 @@ export default function NotificationsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     if (isInitialized && user) {
@@ -50,7 +50,7 @@ export default function NotificationsPage() {
     } else if (isInitialized && !user) {
       setLoading(false);
     }
-  }, [user, isInitialized]);
+  }, [user, isInitialized, fetchNotifications]);
 
   const handleMarkAsRead = async (id: string, link: string | null) => {
     try {

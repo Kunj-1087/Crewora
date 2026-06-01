@@ -176,6 +176,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         PushNotifications.removeAllListeners();
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, router]);
 
   const handleToastDismiss = () => {

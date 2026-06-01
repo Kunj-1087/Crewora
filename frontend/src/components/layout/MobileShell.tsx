@@ -114,8 +114,8 @@ export function MobileShell({ children }: MobileShellProps) {
             {/* User Details Block inside Header */}
             {user ? (
               <div className="flex items-center gap-3.5 mt-2.5 text-left">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <div className="relative p-[2px] rounded-full bg-gradient-to-tr from-blue-500 to-sky-400 shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img 
                     src={user.profilePhoto || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=300'} 
                     alt={user.name} 
