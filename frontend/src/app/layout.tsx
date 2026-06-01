@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import '../styles/globals.css';
 import { AuthProvider } from '@/lib/auth/AuthProvider';
+import { LanguageProvider } from '@/contexts/LanguageContext';
 import { SocketProvider } from '@/contexts/SocketContext';
 import { MobileShell } from '@/components/layout/MobileShell';
 import { MobileHeader } from '@/components/layout/MobileHeader';
@@ -31,15 +32,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={inter.className}>
         <AuthProvider>
-          <SocketProvider>
-            <MobileShell>
-              <MobileHeader />
-              <main className="flex-1 flex flex-col overflow-y-auto min-h-0 bg-slate-50">
-                {children}
-              </main>
-              <MobileTabBar />
-            </MobileShell>
-          </SocketProvider>
+          <LanguageProvider>
+            <SocketProvider>
+              <MobileShell>
+                <MobileHeader />
+                <main className="flex-1 flex flex-col overflow-y-auto min-h-0 bg-slate-50">
+                  {children}
+                </main>
+                <MobileTabBar />
+              </MobileShell>
+            </SocketProvider>
+          </LanguageProvider>
         </AuthProvider>
       </body>
     </html>

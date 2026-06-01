@@ -7,6 +7,7 @@ import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../utils/AppError';
 import { logger } from '../utils/logger';
 import { Prisma } from '@prisma/client';
+import { translateBackend, getLanguageFromRequest } from '../utils/lang';
 
 export function errorHandler(
   err: Error,
@@ -22,11 +23,39 @@ export function errorHandler(
     method: req.method,
   });
 
+  const lang = getLanguageFromRequest(req);
+
   // Operational errors: known, safe to expose message
   if (err instanceof AppError) {
+    const errorMsgMap: Record<string, string> = {
+      'Authentication required': 'errors.auth_required',
+      'Invalid or expired token': 'errors.invalid_token',
+      'Customer not found': 'errors.customer_not_found',
+      'Worker not found': 'errors.worker_not_found',
+      'Job not found': 'errors.job_not_found',
+      'Match not found': 'errors.match_not_found',
+      'This match has already been responded to': 'errors.already_responded',
+      'You cannot accept a new job until your current active job is completed.': 'errors.active_job_exists',
+      'Rating must be between 1 and 5': 'errors.invalid_rating',
+      'Not authorized to complete this job': 'errors.unauthorized_job_complete',
+      'Cannot complete a cancelled job': 'errors.cannot_complete_cancelled',
+      'No worker was assigned to this job': 'errors.no_worker_assigned',
+      'You have already submitted feedback for this job': 'errors.double_review',
+      'Invalid or expired OTP': 'errors.invalid_otp',
+      'Phone number already registered': 'errors.phone_exists',
+      'Account not found. Please register first.': 'errors.user_not_found',
+      'Session expired. Please log in again.': 'errors.session_expired',
+      'Invalid refresh token': 'errors.invalid_refresh_token',
+      'No photo file uploaded': 'errors.no_photo_uploaded',
+      'Only images (jpg, jpeg, png, webp) are allowed!': 'errors.invalid_image_type',
+    };
+
+    const translationKey = errorMsgMap[err.message] || err.message;
+    const translatedMessage = translateBackend(translationKey, lang);
+
     res.status(err.statusCode).json({
       success: false,
-      message: err.message,
+      message: translatedMessage,
       ...(err.code && { code: err.code }),
     });
     return;
@@ -37,30 +66,41 @@ export function errorHandler(
     switch (err.code) {
       case 'P2002': {
         const target = (err.meta?.target as string[])?.join(', ') || 'field';
+        const msg = lang === 'gu'
+          ? `આ ${target} સાથેનો રેકોર્ડ પહેલેથી જ અસ્તિત્વમાં છે.`
+          : `A record with this ${target} already exists.`;
         res.status(409).json({
           success: false,
-          message: `A record with this ${target} already exists.`,
+          message: msg,
         });
         return;
       }
       case 'P2003': {
+        const msg = lang === 'gu'
+          ? 'અમાન્ય લિંક કરેલ રેકોર્ડ (ફોરેન કી મર્યાદા નિષ્ફળ).'
+          : 'Invalid referenced record (foreign key constraint failed).';
         res.status(400).json({
           success: false,
-          message: 'Invalid referenced record (foreign key constraint failed).',
+          message: msg,
         });
         return;
       }
       case 'P2025': {
+        const msg = lang === 'gu'
+          ? 'રેકોર્ડ મળ્યો નથી.'
+          : 'Record not found.';
         res.status(404).json({
           success: false,
-          message: 'Record not found.',
+          message: msg,
         });
         return;
       }
       default:
         res.status(400).json({
           success: false,
-          message: `Database error: ${err.message}`,
+          message: lang === 'gu'
+            ? `ડેટાબેઝ ભૂલ: ${err.message}`
+            : `Database error: ${err.message}`,
         });
         return;
     }
@@ -70,7 +110,7 @@ export function errorHandler(
   if (err.name === 'ValidationError') {
     res.status(400).json({
       success: false,
-      message: 'Validation error',
+      message: lang === 'gu' ? 'વેલિડેશન નિષ્ફળ ગયું' : 'Validation error',
       errors: err.message,
     });
     return;
@@ -80,19 +120,25 @@ export function errorHandler(
   if ((err as NodeJS.ErrnoException).code === '11000') {
     res.status(409).json({
       success: false,
-      message: 'A record with this value already exists',
+      message: lang === 'gu' ? 'આ મૂલ્ય સાથેનો રેકોર્ડ પહેલેથી જ અસ્તિત્વમાં છે' : 'A record with this value already exists',
     });
     return;
   }
 
   // JWT errors
   if (err.name === 'JsonWebTokenError') {
-    res.status(401).json({ success: false, message: 'Invalid token' });
+    res.status(401).json({
+      success: false,
+      message: lang === 'gu' ? 'અમાન્ય ટોકન' : 'Invalid token'
+    });
     return;
   }
 
   if (err.name === 'TokenExpiredError') {
-    res.status(401).json({ success: false, message: 'Token expired' });
+    res.status(401).json({
+      success: false,
+      message: lang === 'gu' ? 'ટોકન સમાપ્ત થઈ ગયું છે' : 'Token expired'
+    });
     return;
   }
 
@@ -100,7 +146,7 @@ export function errorHandler(
   res.status(500).json({
     success: false,
     message: process.env.NODE_ENV === 'production'
-      ? 'An unexpected error occurred'
+      ? (lang === 'gu' ? 'કોઈ અણધારી ભૂલ આવી છે' : 'An unexpected error occurred')
       : err.message,
   });
 }

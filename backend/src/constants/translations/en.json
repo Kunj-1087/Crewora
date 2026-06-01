@@ -1,0 +1,45 @@
+{
+  "errors": {
+    "auth_required": "Authentication required",
+    "invalid_token": "Invalid or expired token",
+    "customer_not_found": "Customer not found",
+    "worker_not_found": "Worker not found",
+    "job_not_found": "Job not found",
+    "match_not_found": "Match not found",
+    "unauthorized_job_complete": "Not authorized to complete this job",
+    "active_job_exists": "You cannot accept a new job until your current active job is completed.",
+    "already_responded": "This match has already been responded to",
+    "double_review": "You have already submitted feedback for this job",
+    "invalid_otp": "Invalid or expired OTP",
+    "phone_exists": "Phone number already registered",
+    "user_not_found": "Account not found. Please register first.",
+    "session_expired": "Session expired. Please log in again.",
+    "invalid_refresh_token": "Invalid refresh token",
+    "no_photo_uploaded": "No photo file uploaded",
+    "invalid_image_type": "Only images (jpg, jpeg, png, webp) are allowed!",
+    "invalid_rating": "Rating must be between 1 and 5",
+    "cannot_complete_cancelled": "Cannot complete a cancelled job",
+    "no_worker_assigned": "No worker was assigned to this job",
+    "default": "An unexpected error occurred"
+  },
+  "success": {
+    "profile_updated": "Profile updated successfully",
+    "photo_updated": "Profile photo updated successfully",
+    "job_completed": "Job completed successfully",
+    "match_responded": "Response submitted successfully"
+  },
+  "notifications": {
+    "contractor_assigned_title": "🎉 Contractor Assigned!",
+    "contractor_assigned_body": "{workerName} accepted your job: \"{jobTitle}\".",
+    "new_job_match_title": "🛠️ New Job Match!",
+    "new_job_match_body": "A {tradeCategory} is needed for \"{jobTitle}\". Urgency: {urgency}."
+  },
+  "emails": {
+    "welcome_customer_subject": "Welcome to Crewora",
+    "welcome_worker_subject": "Welcome to Crewora's Crew",
+    "worker_approved_subject": "Profile Approved! ✅",
+    "worker_rejected_subject": "Profile Update Required",
+    "job_matched_subject": "Worker Matched! 🎉",
+    "password_reset_subject": "Password Reset Request"
+  }
+}

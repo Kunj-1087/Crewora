@@ -27,6 +27,7 @@ model Customer {
   longitude            Float?
   isVerified           Boolean   @default(false)
   isActive             Boolean   @default(true)
+  languagePreference   String?   @map("language_preference")
   refreshTokenHash     String?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
@@ -51,6 +52,7 @@ model Worker {
   verificationStatus          String    @default("pending") // "pending", "approved", "rejected"
   verificationRejectionReason String?
   isActive                    Boolean   @default(true)
+  languagePreference          String?   @map("language_preference")
   refreshTokenHash            String?
   createdAt                   DateTime  @default(now())
   updatedAt                   DateTime  @updatedAt

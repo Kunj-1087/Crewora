@@ -14,6 +14,7 @@ import { useAuthStore } from '@/store/authStore';
 import apiClient from '@/lib/api/client';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Validation schema matches backend worker.service.ts
 const schema = z.object({
@@ -39,6 +40,7 @@ const TRADE_CATEGORIES = [
 
 export default function WorkerProfilePage() {
   const { user, isInitialized, updateUser, logout } = useAuthStore();
+  const { language, changeLanguage, t } = useLanguage();
   const router = useRouter();
 
   const [selectedTrades, setSelectedTrades] = useState<string[]>([]);
@@ -160,9 +162,9 @@ export default function WorkerProfilePage() {
           className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800"
         >
           <ArrowLeft size={16} />
-          <span>Back</span>
+          <span>{t('profile.back')}</span>
         </button>
-        <span className="ml-auto mr-auto font-extrabold text-slate-900 text-sm">Worker Profile</span>
+        <span className="ml-auto mr-auto font-extrabold text-slate-900 text-sm">{t('profile.worker_title')}</span>
         <div className="w-12"></div>
       </div>
 
@@ -209,7 +211,7 @@ export default function WorkerProfilePage() {
         {/* Update Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-5">
           <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest select-none pb-1 border-b border-slate-50">
-            Professional Profile
+            {t('profile.professional_profile')}
           </h3>
 
           {apiError && (
@@ -228,7 +230,7 @@ export default function WorkerProfilePage() {
           {/* 1. Trade Skill Toggles */}
           <div className="space-y-2 select-none">
             <label className="text-sm font-bold text-slate-900 block">
-              Trade Skills
+              {t('profile.trade_skills')}
             </label>
             <div className="flex flex-wrap gap-1.5">
               {TRADE_CATEGORIES.map((trade) => {
@@ -253,7 +255,7 @@ export default function WorkerProfilePage() {
 
           {/* 2. City Location */}
           <Input
-            label="Service City"
+            label={t('profile.service_city')}
             placeholder="e.g. Mumbai"
             leftIcon={<MapPin size={16} />}
             error={errors.city?.message}
@@ -263,7 +265,7 @@ export default function WorkerProfilePage() {
 
           {/* 3. Experience Years */}
           <Input
-            label="Years of Experience"
+            label={t('profile.exp_years')}
             type="number"
             placeholder="e.g. 5"
             leftIcon={<Briefcase size={16} />}
@@ -275,10 +277,10 @@ export default function WorkerProfilePage() {
           {/* 4. Bio Area */}
           <div className="flex flex-col gap-1.5 w-full">
             <label className="text-sm font-medium text-navy block">
-              Professional Biography
+              {t('profile.bio')}
             </label>
             <textarea
-              placeholder="Tell clients about your work quality, standard tools you carry, and general availability times..."
+              placeholder={t('profile.bio_placeholder')}
               rows={3}
               className={`w-full rounded-lg border bg-white px-4 py-3 text-[16px] text-navy placeholder:text-gray-caption outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all ${
                 errors.bio ? 'border-error' : 'border-gray-border'
@@ -299,14 +301,43 @@ export default function WorkerProfilePage() {
             leftIcon={<Save size={16} />}
             className="mt-6"
           >
-            Save Profile Changes
+            {t('profile.save_changes')}
           </Button>
         </form>
+
+        {/* Language Selection Box */}
+        <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-3">
+          <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest select-none pb-1 border-b border-slate-50">
+            {t('profile.lang_pref')}
+          </h3>
+          <div className="flex gap-2">
+            <button
+              onClick={() => changeLanguage('en')}
+              className={`flex-1 py-3 px-4 rounded-xl text-xs font-extrabold border transition-all ${
+                language === 'en'
+                  ? 'bg-accent-600 text-white border-accent-600 shadow-sm'
+                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              English
+            </button>
+            <button
+              onClick={() => changeLanguage('gu')}
+              className={`flex-1 py-3 px-4 rounded-xl text-xs font-extrabold border transition-all ${
+                language === 'gu'
+                  ? 'bg-accent-600 text-white border-accent-600 shadow-sm'
+                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              ગુજરાતી (Gujarati)
+            </button>
+          </div>
+        </div>
 
         {/* Action Actions Box */}
         <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm select-none">
           <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest select-none pb-1 border-b border-slate-50 mb-3">
-            Account Actions
+            {t('profile.account_actions')}
           </h3>
 
           <button
@@ -314,7 +345,7 @@ export default function WorkerProfilePage() {
             className="flex items-center gap-3 w-full p-3.5 rounded-xl text-left border border-slate-100 hover:bg-slate-50 text-slate-700 font-bold text-sm transition-all"
           >
             <LogOut size={18} className="text-slate-400" />
-            <span>Sign Out</span>
+            <span>{t('profile.sign_out')}</span>
           </button>
         </div>
       </div>

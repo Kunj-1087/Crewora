@@ -2,20 +2,14 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Plus, ArrowUpRight, MapPin, User, Phone, CheckCircle2
-} from 'lucide-react';
+import { Plus, CheckCircle2 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useSocket } from '@/contexts/SocketContext';
 import apiClient from '@/lib/api/client';
 import { Job } from '@/types';
 import { FeedbackModal } from '@/components/ui/FeedbackModal';
 
-const MOCK_PAYMENTS = [
-  { id: 'tx-101', service: 'Custom Kitchen Cabinet Installation', date: 'Oct 22, 2023', amount: 1250, status: 'Escrowed' },
-  { id: 'tx-102', service: 'Smart Home Electric Panel Wiring', date: 'Oct 15, 2023', amount: 650, status: 'Released' },
-  { id: 'tx-103', service: 'Bathroom Wall & Floor Tiling', date: 'Oct 05, 2023', amount: 980, status: 'Released' }
-];
+
 
 export default function CustomerDashboard() {
   const { user, isInitialized } = useAuthStore();
@@ -123,7 +117,7 @@ export default function CustomerDashboard() {
       <div className="px-5 pt-6 pb-4 bg-white border-b border-slate-100 flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-xl font-extrabold text-[#0b1528] tracking-tight">Hirer Dashboard</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Manage your postings, contracts, and payments</p>
+          <p className="text-xs text-slate-500 mt-0.5">Manage your postings and contracts</p>
         </div>
         <button
           onClick={() => router.push('/customer/jobs/create')}
@@ -213,46 +207,7 @@ export default function CustomerDashboard() {
           </div>
         </div>
 
-        {/* Recent Messages section temporarily disabled */}
-        {/* ─── Recent Messages List ────────────────────────────────────────────── */}
 
-        {/* ─── Payment History Transactions Table ────────────────────────────── */}
-        <div className="space-y-3">
-          <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider">Payment History</h2>
-          
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
-                    <th className="px-4 py-3">Service</th>
-                    <th className="px-4 py-3">Date</th>
-                    <th className="px-4 py-3 text-right">Amount</th>
-                    <th className="px-4 py-3 text-center">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs font-semibold text-[#0b1528]">
-                  {MOCK_PAYMENTS.map((payment) => (
-                    <tr key={payment.id} className="hover:bg-slate-50/50">
-                      <td className="px-4 py-3.5 max-w-[120px] truncate">{payment.service}</td>
-                      <td className="px-4 py-3.5 text-[10px] text-slate-400">{payment.date}</td>
-                      <td className="px-4 py-3.5 text-right font-black">${payment.amount}</td>
-                      <td className="px-4 py-3.5 text-center">
-                        <span className={`inline-flex px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
-                          payment.status === 'Released' 
-                            ? 'bg-emerald-50 text-[#065f46]' 
-                            : 'bg-indigo-50 text-indigo-700'
-                        }`}>
-                          {payment.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
       </div>
       <FeedbackModal
         isOpen={isFeedbackOpen}

@@ -13,6 +13,7 @@ import { useAuthStore } from '@/store/authStore';
 import apiClient from '@/lib/api/client';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const schema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(100),
@@ -24,6 +25,7 @@ type FormData = z.infer<typeof schema>;
 
 export default function CustomerProfilePage() {
   const { user, isInitialized, updateUser, logout } = useAuthStore();
+  const { language, changeLanguage, t } = useLanguage();
   const router = useRouter();
 
   const [apiError, setApiError] = useState<string | null>(null);
@@ -115,9 +117,9 @@ export default function CustomerProfilePage() {
           className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800"
         >
           <ArrowLeft size={16} />
-          <span>Back</span>
+          <span>{t('profile.back')}</span>
         </button>
-        <span className="ml-auto mr-auto font-extrabold text-slate-900 text-sm">My Profile</span>
+        <span className="ml-auto mr-auto font-extrabold text-slate-900 text-sm">{t('profile.title')}</span>
         <div className="w-12"></div>
       </div>
 
@@ -139,7 +141,7 @@ export default function CustomerProfilePage() {
         {/* Update Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4">
           <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest select-none pb-1 border-b border-slate-50">
-            Account Information
+            {t('profile.account_info')}
           </h3>
 
           {apiError && (
@@ -156,7 +158,7 @@ export default function CustomerProfilePage() {
           )}
 
           <Input
-            label="Full Name"
+            label={t('profile.full_name')}
             placeholder="John Doe"
             leftIcon={<User size={16} />}
             error={errors.name?.message}
@@ -165,7 +167,7 @@ export default function CustomerProfilePage() {
           />
 
           <Input
-            label="Phone Number"
+            label={t('profile.phone_number')}
             placeholder="e.g. 9876543210"
             leftIcon={<Phone size={16} />}
             error={errors.phone?.message}
@@ -174,7 +176,7 @@ export default function CustomerProfilePage() {
           />
 
           <Input
-            label="Default Address"
+            label={t('profile.default_address')}
             placeholder="Apartment, Street Address, City"
             leftIcon={<MapPin size={16} />}
             error={errors.address?.message}
@@ -188,14 +190,43 @@ export default function CustomerProfilePage() {
             leftIcon={<Save size={16} />}
             className="mt-6"
           >
-            Save Profile Changes
+            {t('profile.save_changes')}
           </Button>
         </form>
+
+        {/* Language Selection Box */}
+        <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-3">
+          <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest select-none pb-1 border-b border-slate-50">
+            {t('profile.lang_pref')}
+          </h3>
+          <div className="flex gap-2">
+            <button
+              onClick={() => changeLanguage('en')}
+              className={`flex-1 py-3 px-4 rounded-xl text-xs font-extrabold border transition-all ${
+                language === 'en'
+                  ? 'bg-accent-600 text-white border-accent-600 shadow-sm'
+                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              English
+            </button>
+            <button
+              onClick={() => changeLanguage('gu')}
+              className={`flex-1 py-3 px-4 rounded-xl text-xs font-extrabold border transition-all ${
+                language === 'gu'
+                  ? 'bg-accent-600 text-white border-accent-600 shadow-sm'
+                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              ગુજરાતી (Gujarati)
+            </button>
+          </div>
+        </div>
 
         {/* Account Actions Box */}
         <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-3 select-none">
           <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest select-none pb-1 border-b border-slate-50">
-            Account Actions
+            {t('profile.account_actions')}
           </h3>
 
           {/* Logout Button */}
@@ -204,7 +235,7 @@ export default function CustomerProfilePage() {
             className="flex items-center gap-3 w-full p-3.5 rounded-xl text-left border border-slate-100 hover:bg-slate-50 text-slate-700 font-bold text-sm transition-all"
           >
             <LogOut size={18} className="text-slate-400" />
-            <span>Sign Out</span>
+            <span>{t('profile.sign_out')}</span>
           </button>
 
           {/* Delete Button */}
@@ -213,7 +244,7 @@ export default function CustomerProfilePage() {
             className="flex items-center gap-3 w-full p-3.5 rounded-xl text-left border border-red-50 hover:bg-red-50/50 text-error font-bold text-sm transition-all"
           >
             <Trash2 size={18} className="text-red-400" />
-            <span>Deactivate / Delete Account</span>
+            <span>{t('profile.deactivate')}</span>
           </button>
         </div>
       </div>

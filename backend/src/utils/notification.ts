@@ -26,6 +26,26 @@ try {
   logger.error('Firebase Admin initialization failed. Running in MOCK mode.', { err });
 }
 
+import { translateBackend } from './lang';
+
+async function getUserLanguage(userId: string): Promise<'en' | 'gu'> {
+  const customer = await prisma.customer.findUnique({
+    where: { id: userId },
+    select: { languagePreference: true }
+  });
+  if (customer && customer.languagePreference) {
+    return customer.languagePreference as 'en' | 'gu';
+  }
+  const worker = await prisma.worker.findUnique({
+    where: { id: userId },
+    select: { languagePreference: true }
+  });
+  if (worker && worker.languagePreference) {
+    return worker.languagePreference as 'en' | 'gu';
+  }
+  return 'en';
+}
+
 /**
  * Sends a push notification to all registered devices of a specific user.
  */
@@ -36,12 +56,38 @@ export async function sendPushToUser(
   data?: Record<string, string>
 ): Promise<void> {
   try {
+    const lang = await getUserLanguage(userId);
+
+    let translatedTitle = title;
+    let translatedBody = body;
+
+    if (lang === 'gu') {
+      if (title === '🎉 Contractor Assigned!') {
+        translatedTitle = translateBackend('notifications.contractor_assigned_title', 'gu');
+        const matchAccept = body.match(/^(.+?) accepted your job: "(.+?)"\.$/);
+        if (matchAccept) {
+          const workerName = matchAccept[1];
+          const jobTitle = matchAccept[2];
+          translatedBody = translateBackend('notifications.contractor_assigned_body', 'gu', { workerName, jobTitle });
+        }
+      } else if (title === '🛠️ New Job Match!') {
+        translatedTitle = translateBackend('notifications.new_job_match_title', 'gu');
+        const matchMatch = body.match(/^A (.+?) is needed for "(.+?)"\. Urgency: (.+?)\.$/);
+        if (matchMatch) {
+          const tradeCategory = matchMatch[1];
+          const jobTitle = matchMatch[2];
+          const urgency = matchMatch[3];
+          translatedBody = translateBackend('notifications.new_job_match_body', 'gu', { tradeCategory, jobTitle, urgency });
+        }
+      }
+    }
+
     // Save to database for persistent notification history
     await prisma.notification.create({
       data: {
         userId,
-        title,
-        body,
+        title: translatedTitle,
+        body: translatedBody,
         link: data?.link || null,
       },
     });
@@ -62,8 +108,8 @@ export async function sendPushToUser(
       const message: admin.messaging.MulticastMessage = {
         tokens,
         notification: {
-          title,
-          body,
+          title: translatedTitle,
+          body: translatedBody,
         },
         data: data || {},
         android: {
@@ -112,7 +158,7 @@ export async function sendPushToUser(
       }
     } else {
       // Mock mode logging
-      logger.info(`[MOCK PUSH] To User: ${userId} | Title: "${title}" | Body: "${body}" | Data:`, data || {});
+      logger.info(`[MOCK PUSH] To User: ${userId} | Title: "${translatedTitle}" | Body: "${translatedBody}" | Data:`, data || {});
     }
   } catch (error) {
     logger.error('Failed to send push notification', { userId, error });

@@ -1,0 +1,45 @@
+{
+  "errors": {
+    "auth_required": "પ્રમાણીકરણ જરૂરી છે",
+    "invalid_token": "અમાન્ય અથવા સમાપ્ત થયેલ ટોકન",
+    "customer_not_found": "ગ્રાહક મળ્યા નથી",
+    "worker_not_found": "કારીગર મળ્યા નથી",
+    "job_not_found": "કામ મળ્યું નથી",
+    "match_not_found": "જોડ મેળ ખાતી નથી",
+    "unauthorized_job_complete": "આ કામ પૂર્ણ કરવા માટે તમે અધિકૃત નથી",
+    "active_job_exists": "તમારું વર્તમાન સક્રિય કામ પૂર્ણ ન થાય ત્યાં સુધી તમે નવું કામ સ્વીકારી શકતા નથી.",
+    "already_responded": "આ જોડનો જવાબ પહેલેથી જ આપી દેવામાં આવ્યો છે",
+    "double_review": "તમે આ કામ માટે તમારો પ્રતિસાદ સબમિટ કરી દીધો છે",
+    "invalid_otp": "અમાન્ય અથવા સમાપ્ત થયેલ OTP",
+    "phone_exists": "ફોન નંબર પહેલેથી જ રજીસ્ટર્ડ છે",
+    "user_not_found": "એકાઉન્ટ મળ્યું નથી. કૃપા કરીને પહેલા રજીસ્ટર કરો.",
+    "session_expired": "સત્ર સમાપ્ત થઈ ગયું છે. કૃપા કરીને ફરીથી લોગ ઇન કરો.",
+    "invalid_refresh_token": "અમાન્ય રિફ્રેશ ટોકન",
+    "no_photo_uploaded": "કોઈ ફોટો ફાઇલ અપલોડ કરવામાં આવી નથી",
+    "invalid_image_type": "ફક્ત છબીઓ (jpg, jpeg, png, webp) જ માન્ય છે!",
+    "invalid_rating": "રેટિંગ ૧ થી ૫ ની વચ્ચે હોવું જોઈએ",
+    "cannot_complete_cancelled": "રદ કરેલ કામ પૂર્ણ કરી શકાતું નથી",
+    "no_worker_assigned": "આ કામ માટે કોઈ કારીગર સોંપવામાં આવ્યા ન હતા",
+    "default": "કોઈ અણધારી ભૂલ આવી છે"
+  },
+  "success": {
+    "profile_updated": "પ્રોફાઇલ સફળતાપૂર્વક અપડેટ થઈ",
+    "photo_updated": "પ્રોફાઇલ ફોટો સફળતાપૂર્વક અપડેટ થયો",
+    "job_completed": "કામ સફળતાપૂર્વક પૂર્ણ થયું",
+    "match_responded": "પ્રતિસાદ સફળતાપૂર્વક સબમિટ થયો"
+  },
+  "notifications": {
+    "contractor_assigned_title": "🎉 કામ સોંપવામાં આવ્યું!",
+    "contractor_assigned_body": "{workerName} એ તમારું કામ સ્વીકાર્યું: \"{jobTitle}\".",
+    "new_job_match_title": "🛠️ નવું કામ મળ્યું!",
+    "new_job_match_body": "\"{jobTitle}\" માટે {tradeCategory} ની જરૂર છે. તાકીદ: {urgency}."
+  },
+  "emails": {
+    "welcome_customer_subject": "Welcome to Crewora",
+    "welcome_worker_subject": "Welcome to Crewora's Crew",
+    "worker_approved_subject": "Profile Approved! ✅",
+    "worker_rejected_subject": "Profile Update Required",
+    "job_matched_subject": "Worker Matched! 🎉",
+    "password_reset_subject": "Password Reset Request"
+  }
+}

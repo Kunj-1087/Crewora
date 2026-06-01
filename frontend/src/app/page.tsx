@@ -6,6 +6,7 @@ import {
   Search, Star, CheckCircle, MapPin, Briefcase, ChevronRight, User, AlertCircle
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { useLanguage } from '@/contexts/LanguageContext';
 import apiClient from '@/lib/api/client';
 import { Worker } from '@/types';
 
@@ -22,6 +23,7 @@ const CATEGORIES = [
 
 export default function ExplorePage() {
   const { user } = useAuthStore();
+  const { t } = useLanguage();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -143,8 +145,8 @@ export default function ExplorePage() {
       
       {/* Search Header Container */}
       <div className="px-5 pt-6 pb-2 bg-white border-b border-slate-100 shrink-0">
-        <h1 className="text-xl font-extrabold text-[#0b1528] tracking-tight">Explore Experts</h1>
-        <p className="text-xs text-slate-500 mt-1 mb-4">Find verified professional talent instantly</p>
+        <h1 className="text-xl font-extrabold text-[#0b1528] tracking-tight">{t('explore.title')}</h1>
+        <p className="text-xs text-slate-500 mt-1 mb-4">{t('explore.subtitle')}</p>
         
         {/* Search Bar Input Container */}
         <div className="relative flex items-center mb-4">
@@ -154,7 +156,7 @@ export default function ExplorePage() {
           <input
             ref={searchInputRef}
             type="text"
-            placeholder="Search for professional services..."
+            placeholder={t('explore.search_placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-slate-50 hover:bg-slate-100/80 focus:bg-white text-sm text-[#0b1528] placeholder-slate-400 pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:border-accent-500 focus:ring-1 focus:ring-accent-500 transition-all outline-none"
@@ -173,7 +175,7 @@ export default function ExplorePage() {
                   : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
               }`}
             >
-              {cat.label}
+              {t('categories.' + cat.id)}
             </button>
           ))}
         </div>
@@ -201,8 +203,8 @@ export default function ExplorePage() {
         ) : filteredWorkers.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-2xl border border-slate-100 px-6">
             <Briefcase size={40} className="text-slate-300 mx-auto mb-3" />
-            <h3 className="text-sm font-bold text-slate-700">No experts found</h3>
-            <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">Try resetting filters or adjusting your search term.</p>
+            <h3 className="text-sm font-bold text-slate-700">{t('explore.no_experts')}</h3>
+            <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">{t('explore.reset_filters')}</p>
           </div>
         ) : (
           filteredWorkers.map((worker) => {
@@ -224,7 +226,7 @@ export default function ExplorePage() {
                       className="w-full h-full object-cover object-top"
                     />
                     <div className="absolute top-3 right-3 bg-[#0b1528] text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                      Verified Pro
+                      {t('explore.verified_pro')}
                     </div>
                   </div>
 
@@ -268,7 +270,7 @@ export default function ExplorePage() {
 
                     <div className="border-t border-slate-100 mt-4 pt-4 flex justify-end">
                       <Link href={`/workers/${worker.id}`} className="inline-flex items-center gap-1 text-xs font-black text-[#0b1528] hover:text-accent-600 transition-colors">
-                        View Profile
+                        {t('explore.view_profile')}
                         <ChevronRight size={14} />
                       </Link>
                     </div>
@@ -331,7 +333,7 @@ export default function ExplorePage() {
 
                     <div className="mt-3 flex justify-end">
                       <Link href={`/workers/${worker.id}`} className="text-[11px] font-extrabold text-[#0b1528] hover:text-accent-600 transition-colors flex items-center gap-0.5">
-                        View Profile
+                        {t('explore.view_profile')}
                         <ChevronRight size={12} />
                       </Link>
                     </div>
@@ -349,14 +351,14 @@ export default function ExplorePage() {
             <span className="bg-accent-500/20 text-accent-300 text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
               Recruitment
             </span>
-            <h3 className="text-base font-black leading-snug">Grow Your Team</h3>
+            <h3 className="text-base font-black leading-snug">{t('explore.recruitment_title')}</h3>
             <p className="text-[11px] text-slate-300 leading-normal">
-              Need custom professional support for specialized engineering or design work? Post a job on our dashboard.
+              {t('explore.recruitment_desc')}
             </p>
             <div className="pt-2">
               <Link href={user ? '/customer/jobs/create' : '/login'}>
                 <button className="bg-accent-600 hover:bg-accent-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl shadow-sm transition-all active:scale-95 border-none outline-none">
-                  Post a Job
+                  {t('explore.post_job')}
                 </button>
               </Link>
             </div>

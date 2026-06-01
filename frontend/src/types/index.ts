@@ -29,6 +29,7 @@ export interface Customer {
   location?: { coordinates: [number, number] };
   isVerified: boolean;
   isActive: boolean;
+  languagePreference?: 'en' | 'gu';
   createdAt: string;
 }
 
@@ -48,6 +49,7 @@ export interface Worker {
   profilePhoto?: string;
   certifications?: string[];
   isActive: boolean;
+  languagePreference?: 'en' | 'gu';
   createdAt: string;
 }
 

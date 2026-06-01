@@ -24,6 +24,7 @@ import adminRoutes from './modules/admin/admin.routes';
 import inboxRoutes from './modules/inbox/inbox.routes';
 import reviewRoutes from './modules/reviews/review.routes';
 import notificationRoutes from './modules/notifications/notifications.routes';
+import userRoutes from './modules/user/user.routes';
 
 const app = express();
 
@@ -127,6 +128,7 @@ app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/inbox', inboxRoutes);
 app.use('/api/v1', reviewRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
+app.use('/api/v1/user', userRoutes);
 
 // ─── 404 Handler ─────────────────────────────────────────────────────────────
 

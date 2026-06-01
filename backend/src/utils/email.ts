@@ -87,8 +87,24 @@ const btnStyle = `
   margin: 16px 0;
 `;
 
-export function welcomeCustomerEmail(name: string): string {
+export function welcomeCustomerEmail(name: string, lang: 'en' | 'gu' = 'en'): string {
   const safeName = escapeHtml(name);
+  if (lang === 'gu') {
+    return `
+      <div style="${baseStyle}">
+        <div style="${headerStyle}">
+          <h1 style="color:#ffffff;margin:0;font-size:24px;">Crewora માં આપનું સ્વાગત છે</h1>
+        </div>
+        <div style="${bodyStyle}">
+          <h2>નમસ્તે ${safeName}! 👋</h2>
+          <p>તમે હવે <strong>Crewora</strong> પર નોંધણી કરાવી લીધી છે — જે તમારી નજીકના વિશ્વાસુ બ્લુ-કોલર કારીગરો શોધવાનો સૌથી ઝડપી રસ્તો છે.</p>
+          <p>તમે હવે તમારી પ્રથમ કામની જરૂરિયાત પોસ્ટ કરી શકો છો અને તમારા વિસ્તારના ચકાસાયેલ કારીગરો સાથે જોડાઈ શકો છો.</p>
+          <a href="${env.CLIENT_URL}/customer/dashboard" style="${btnStyle}">ડેશબોર્ડ પર જાઓ</a>
+          <p style="color:#555555;font-size:14px;">મદદ જોઈએ છે? આ ઇમેઇલનો જવાબ આપો.</p>
+        </div>
+      </div>
+    `;
+  }
   return `
     <div style="${baseStyle}">
       <div style="${headerStyle}">
@@ -105,8 +121,24 @@ export function welcomeCustomerEmail(name: string): string {
   `;
 }
 
-export function welcomeWorkerEmail(name: string): string {
+export function welcomeWorkerEmail(name: string, lang: 'en' | 'gu' = 'en'): string {
   const safeName = escapeHtml(name);
+  if (lang === 'gu') {
+    return `
+      <div style="${baseStyle}">
+        <div style="${headerStyle}">
+          <h1 style="color:#ffffff;margin:0;font-size:24px;">Crewora ના ગ્રૂપમાં આપનું સ્વાગત છે</h1>
+        </div>
+        <div style="${bodyStyle}">
+          <h2>નમસ્તે ${safeName}! 👷</h2>
+          <p>તમે Crewora પર <strong>ક્રૂ મેમ્બર</strong> તરીકે સફળતાપૂર્વક નોંધણી કરાવી છે.</p>
+          <p>તમારી પ્રોફાઇલ હાલમાં <strong>સમીક્ષા હેઠળ</strong> છે. અમારી ટીમ ૨૪-૪૮ કલાકની અંદર તમારી પ્રોફાઇલની ચકાસણી કરશે.</p>
+          <p>એકવાર મંજૂર થયા પછી, તમને તમારા વિસ્તારમાં સીધા પ્લેટફોર્મ પર કામની તકો મળવાનું શરૂ થઈ જશે.</p>
+          <p style="color:#555555;font-size:14px;">કોઈ વચેટિયા નહીં. કોઈ કમિશન નહીં. બસ વાસ્તવિક સ્થાનિક કામ.</p>
+        </div>
+      </div>
+    `;
+  }
   return `
     <div style="${baseStyle}">
       <div style="${headerStyle}">
@@ -123,8 +155,22 @@ export function welcomeWorkerEmail(name: string): string {
   `;
 }
 
-export function workerApprovedEmail(name: string): string {
+export function workerApprovedEmail(name: string, lang: 'en' | 'gu' = 'en'): string {
   const safeName = escapeHtml(name);
+  if (lang === 'gu') {
+    return `
+      <div style="${baseStyle}">
+        <div style="${headerStyle}">
+          <h1 style="color:#ffffff;margin:0;font-size:24px;">પ્રોફાઇલ મંજૂર થઈ ગઈ છે! ✅</h1>
+        </div>
+        <div style="${bodyStyle}">
+          <h2>સારા સમાચાર, ${safeName}!</h2>
+          <p>તમારી Crewora પ્રોફાઇલ <strong>મંજૂર</strong> કરવામાં આવી છે. હવે તમે તમારા વેપાર અને વિસ્તારમાં કારીગરો શોધી રહેલા ગ્રાહકોને દેખાશો.</p>
+          <a href="${env.CLIENT_URL}/worker/dashboard" style="${btnStyle}">કામની તકો જુઓ</a>
+        </div>
+      </div>
+    `;
+  }
   return `
     <div style="${baseStyle}">
       <div style="${headerStyle}">
@@ -139,9 +185,25 @@ export function workerApprovedEmail(name: string): string {
   `;
 }
 
-export function workerRejectedEmail(name: string, reason: string): string {
+export function workerRejectedEmail(name: string, reason: string, lang: 'en' | 'gu' = 'en'): string {
   const safeName = escapeHtml(name);
   const safeReason = escapeHtml(reason);
+  if (lang === 'gu') {
+    return `
+      <div style="${baseStyle}">
+        <div style="${headerStyle}">
+          <h1 style="color:#ffffff;margin:0;font-size:24px;">પ્રોફાઇલ અપડેટ જરૂરી છે</h1>
+        </div>
+        <div style="${bodyStyle}">
+          <h2>નમસ્તે ${safeName},</h2>
+          <p>અમે આ સમયે તમારી પ્રોફાઇલ ચકાસવામાં અસમર્થ હતા.</p>
+          <p><strong>કારણ:</strong> ${safeReason}</p>
+          <p>કૃપા કરીને જરૂરી માહિતી સાથે તમારી પ્રોફાઇલ અપડેટ કરો અને સમીક્ષા માટે ફરીથી સબમિટ કરો.</p>
+          <a href="${env.CLIENT_URL}/worker/profile" style="${btnStyle}">પ્રોફાઇલ અપડેટ કરો</a>
+        </div>
+      </div>
+    `;
+  }
   return `
     <div style="${baseStyle}">
       <div style="${headerStyle}">
@@ -161,11 +223,27 @@ export function workerRejectedEmail(name: string, reason: string): string {
 export function jobMatchedEmail(
   customerName: string,
   jobTitle: string,
-  workerName: string
+  workerName: string,
+  lang: 'en' | 'gu' = 'en'
 ): string {
   const safeCustomerName = escapeHtml(customerName);
   const safeJobTitle = escapeHtml(jobTitle);
   const safeWorkerName = escapeHtml(workerName);
+  if (lang === 'gu') {
+    return `
+      <div style="${baseStyle}">
+        <div style="${headerStyle}">
+          <h1 style="color:#ffffff;margin:0;font-size:24px;">કારીગર મળી ગયા! 🎉</h1>
+        </div>
+        <div style="${bodyStyle}">
+          <h2>નમસ્તે ${safeCustomerName},</h2>
+          <p>તમારા કામ માટે એક કારીગર મળી ગયા છે: <strong>${safeJobTitle}</strong></p>
+          <p><strong>${safeWorkerName}</strong> એ તમારી કામની વિનંતી સ્વીકારી લીધી છે અને તેઓ તમારો સંપર્ક કરશે.</p>
+          <a href="${env.CLIENT_URL}/customer/dashboard" style="${btnStyle}">કામની વિગતો જુઓ</a>
+        </div>
+      </div>
+    `;
+  }
   return `
     <div style="${baseStyle}">
       <div style="${headerStyle}">
@@ -181,10 +259,24 @@ export function jobMatchedEmail(
   `;
 }
 
-export function passwordResetEmail(name: string, resetToken: string): string {
+export function passwordResetEmail(name: string, resetToken: string, lang: 'en' | 'gu' = 'en'): string {
   const safeName = escapeHtml(name);
-  // resetToken is a crypto random hex string — safe to use directly in URL
   const resetUrl = `${env.CLIENT_URL}/reset-password?token=${resetToken}`;
+  if (lang === 'gu') {
+    return `
+      <div style="${baseStyle}">
+        <div style="${headerStyle}">
+          <h1 style="color:#ffffff;margin:0;font-size:24px;">પાસવર્ડ પુનઃસુયોજિત કરવા વિનંતી</h1>
+        </div>
+        <div style="${bodyStyle}">
+          <h2>નમસ્તે ${safeName},</h2>
+          <p>અમને તમારો પાસવર્ડ પુનઃસુયોજિત કરવાની વિનંતી મળી છે. નીચેની લિંક પર ક્લિક કરો (<strong>૧ કલાક</strong> માટે માન્ય):</p>
+          <a href="${resetUrl}" style="${btnStyle}">પાસવર્ડ પુનઃસુયોજિત કરો</a>
+          <p style="color:#555555;font-size:14px;">જો તમે આ વિનંતી નથી કરી, તો આ ઇમેઇલની અવગણના કરો.</p>
+        </div>
+      </div>
+    `;
+  }
   return `
     <div style="${baseStyle}">
       <div style="${headerStyle}">
