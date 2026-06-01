@@ -310,7 +310,7 @@ export default function WorkerDashboard() {
             <div className="text-xs">
               <span className="font-bold block">Active Job In Progress</span>
               <p className="mt-1 opacity-90">
-                You have an active job in progress. You must mark it as <strong>"Work Done"</strong> under the Active Jobs tab before you can accept any new invitations.
+                You have an active job in progress. You must mark it as <strong>&quot;Work Done&quot;</strong> under the Active Jobs tab before you can accept any new invitations.
               </p>
             </div>
           </div>
