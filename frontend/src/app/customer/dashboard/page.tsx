@@ -11,6 +11,12 @@ import apiClient from '@/lib/api/client';
 import { Job } from '@/types';
 import { FeedbackModal } from '@/components/ui/FeedbackModal';
 
+const MOCK_PAYMENTS = [
+  { id: 'tx-101', service: 'Custom Kitchen Cabinet Installation', date: 'Oct 22, 2023', amount: 1250, status: 'Escrowed' },
+  { id: 'tx-102', service: 'Smart Home Electric Panel Wiring', date: 'Oct 15, 2023', amount: 650, status: 'Released' },
+  { id: 'tx-103', service: 'Bathroom Wall & Floor Tiling', date: 'Oct 05, 2023', amount: 980, status: 'Released' }
+];
+
 export default function CustomerDashboard() {
   const { user, isInitialized } = useAuthStore();
   const socket = useSocket();
@@ -129,32 +135,6 @@ export default function CustomerDashboard() {
       </div>
 
       <div className="px-5 py-5 space-y-6">
-        
-        {/* ─── Total Monthly Spend Navy Card ────────────────────────────────────── */}
-        <div className="bg-[#0b1528] rounded-2xl p-5 text-white shadow-md relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-36 h-36 bg-accent-500/15 rounded-full blur-3xl"></div>
-          <div className="flex justify-between items-start">
-            <div className="space-y-1">
-              <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Total Monthly Spend</span>
-              <h2 className="text-2xl font-black tracking-tight">$0.00</h2>
-            </div>
-            <div className="bg-accent-500/20 text-accent-300 text-[10px] font-extrabold px-2.5 py-1 rounded-full flex items-center gap-0.5">
-              <ArrowUpRight size={10} />
-              0.0%
-            </div>
-          </div>
-          
-          {/* Progress bar indicator */}
-          <div className="mt-5 space-y-2">
-            <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold">
-              <span>Budget Limit ($5,000)</span>
-              <span>0% Used</span>
-            </div>
-            <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-              <div className="h-full bg-accent-600 rounded-full" style={{ width: '0%' }}></div>
-            </div>
-          </div>
-        </div>
 
         {/* ─── Active Jobs Card Section ────────────────────────────────────────── */}
         <div className="space-y-3">
@@ -194,12 +174,12 @@ export default function CustomerDashboard() {
                     </span>
                   </div>
 
-                  {/* Assigned Contractor details */}
+                  {/* Assigned Worker details */}
                   {(job as any).assignedWorker ? (
                     <div className="border-t border-slate-50 pt-3 flex flex-col gap-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-bold text-slate-700">Contractor: {(job as any).assignedWorker.name}</span>
+                          <span className="text-[11px] font-bold text-slate-700">Worker: {(job as any).assignedWorker.name}</span>
                         </div>
                         <span className="text-[10px] text-slate-400 font-medium">
                           {new Date(job.createdAt).toLocaleDateString()}
@@ -233,62 +213,44 @@ export default function CustomerDashboard() {
           </div>
         </div>
 
+        {/* Recent Messages section temporarily disabled */}
         {/* ─── Recent Messages List ────────────────────────────────────────────── */}
-        <div className="space-y-3">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider">Recent Messages</h2>
-            <button 
-              onClick={() => router.push('/inbox')}
-              className="text-xs font-bold text-accent-600 hover:underline"
-            >
-              View Inbox
-            </button>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-100 shadow-sm overflow-hidden">
-            {conversations.length === 0 ? (
-              <div className="p-6 text-center text-xs text-slate-400 font-bold">
-                No recent messages in your inbox.
-              </div>
-            ) : (
-              conversations.slice(0, 3).map((c) => (
-                <div 
-                  key={c.id}
-                  onClick={() => router.push(`/inbox?chat=${c.id}`)}
-                  className="p-4 flex gap-3 hover:bg-slate-50 transition-colors cursor-pointer relative"
-                >
-                  {c.unread && (
-                    <span className="absolute top-4 left-4 w-2.5 h-2.5 bg-accent-600 rounded-full border-2 border-white"></span>
-                  )}
-                  
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img 
-                    src={c.photo} 
-                    alt={c.name} 
-                    className="w-10 h-10 rounded-full object-cover shrink-0 border border-slate-100"
-                  />
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-baseline gap-1">
-                      <h4 className="text-xs font-extrabold text-[#0b1528]">{c.name}</h4>
-                      <span className="text-[9px] text-slate-400 font-medium">
-                        {new Date(c.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 mt-1 line-clamp-1 truncate">{c.lastMsg}</p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
 
         {/* ─── Payment History Transactions Table ────────────────────────────── */}
         <div className="space-y-3">
           <h2 className="text-xs font-black text-slate-400 uppercase tracking-wider">Payment History</h2>
           
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden p-6 text-center text-xs text-slate-400 font-bold">
-            No recent payments. Complete bookings with matching workers to initiate escrow payments.
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                    <th className="px-4 py-3">Service</th>
+                    <th className="px-4 py-3">Date</th>
+                    <th className="px-4 py-3 text-right">Amount</th>
+                    <th className="px-4 py-3 text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs font-semibold text-[#0b1528]">
+                  {MOCK_PAYMENTS.map((payment) => (
+                    <tr key={payment.id} className="hover:bg-slate-50/50">
+                      <td className="px-4 py-3.5 max-w-[120px] truncate">{payment.service}</td>
+                      <td className="px-4 py-3.5 text-[10px] text-slate-400">{payment.date}</td>
+                      <td className="px-4 py-3.5 text-right font-black">${payment.amount}</td>
+                      <td className="px-4 py-3.5 text-center">
+                        <span className={`inline-flex px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                          payment.status === 'Released' 
+                            ? 'bg-emerald-50 text-[#065f46]' 
+                            : 'bg-indigo-50 text-indigo-700'
+                        }`}>
+                          {payment.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>

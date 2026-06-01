@@ -172,7 +172,8 @@ export function MobileShell({ children }: MobileShellProps) {
               <ChevronRight size={14} className={`transition-colors ${pathname === dashboardHref ? 'text-blue-500' : 'text-slate-355'}`} />
             </button>
 
-            <button
+{/* Inbox menu item temporarily disabled */}
+            {/* <button
               onClick={() => handleNavigate('/inbox')}
               className={getLinkClass('/inbox')}
             >
@@ -181,7 +182,7 @@ export function MobileShell({ children }: MobileShellProps) {
                 <span className="text-xs">Inbox Messages</span>
               </div>
               <ChevronRight size={14} className={`transition-colors ${pathname === '/inbox' ? 'text-blue-500' : 'text-slate-355'}`} />
-            </button>
+            </button> */}
 
             <button
               onClick={() => handleNavigate(profileHref)}

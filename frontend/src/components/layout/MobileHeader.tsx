@@ -65,18 +65,17 @@ export function MobileHeader() {
               <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-accent rounded-full border border-white"></span>
             </button>
 
-            {/* Profile Button */}
+            {/* User Avatar Action */}
             <button
               onClick={handleProfileClick}
-              className="text-xs font-semibold text-accent-700 hover:bg-accent-50 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 select-none"
+              className="w-8 h-8 border border-slate-100 bg-slate-50 text-slate-600 hover:border-accent rounded-full flex items-center justify-center transition-all select-none overflow-hidden"
             >
               {user.profilePhoto ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={user.profilePhoto} alt={user.name} className="w-4.5 h-4.5 rounded-full object-cover border border-slate-100" />
+                <img src={user.profilePhoto} alt={user.name} className="w-full h-full object-cover" />
               ) : (
-                <User size={13} className="stroke-[2.5]" />
+                <User size={14} />
               )}
-              <span>Profile</span>
             </button>
           </div>
         ) : (

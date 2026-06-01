@@ -60,13 +60,13 @@ export function MobileTabBar() {
         </div>
       </Link>
 
-      {/* 3. Inbox Tab */}
-      <Link href="/inbox" className={tabClass(isInbox)}>
+      {/* Inbox tab temporarily disabled */}
+      {/* <Link href="/inbox" className={tabClass(isInbox)}>
         <div className={containerClass(isInbox)}>
           <MessageSquare size={20} className={clsx('transition-transform duration-200', isInbox && 'stroke-[2.5]')} />
           <span>Inbox</span>
         </div>
-      </Link>
+      </Link> */}
 
       {/* 4. Profile Tab */}
       <Link href={profileHref} className={tabClass(isProfile)}>

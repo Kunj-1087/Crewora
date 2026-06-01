@@ -22,12 +22,12 @@ export async function incrementLoginAttempts(
   if (lockUntil && lockUntil < now) {
     // Lock expired - reset attempts to 1 and remove lock
     if (type === 'customer') {
-      await prisma.customer.update({
+      await (prisma.customer as any).update({
         where: { id },
         data: { loginAttempts: 1, lockUntil: null },
       });
     } else {
-      await prisma.worker.update({
+      await (prisma.worker as any).update({
         where: { id },
         data: { loginAttempts: 1, lockUntil: null },
       });
@@ -43,12 +43,12 @@ export async function incrementLoginAttempts(
   }
 
   if (type === 'customer') {
-    await prisma.customer.update({
+    await (prisma.customer as any).update({
       where: { id },
       data,
     });
   } else {
-    await prisma.worker.update({
+    await (prisma.worker as any).update({
       where: { id },
       data,
     });
@@ -58,12 +58,12 @@ export async function incrementLoginAttempts(
 export async function resetLoginAttempts(type: 'customer' | 'worker', id: string) {
   const data = { loginAttempts: 0, lockUntil: null };
   if (type === 'customer') {
-    await prisma.customer.update({
+    await (prisma.customer as any).update({
       where: { id },
       data,
     });
   } else {
-    await prisma.worker.update({
+    await (prisma.worker as any).update({
       where: { id },
       data,
     });

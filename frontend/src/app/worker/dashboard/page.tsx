@@ -289,7 +289,7 @@ export default function WorkerDashboard() {
                 : 'border-transparent text-slate-400 hover:text-slate-600'
             }`}
           >
-            New Invites
+            Incoming Jobs
           </button>
           <button
             onClick={() => setActiveTab('accepted')}
@@ -299,7 +299,7 @@ export default function WorkerDashboard() {
                 : 'border-transparent text-slate-400 hover:text-slate-600'
             }`}
           >
-            Active Jobs
+            My Jobs
           </button>
         </div>
 
@@ -321,10 +321,10 @@ export default function WorkerDashboard() {
           <div className="mb-4 bg-emerald-50 border border-emerald-100 rounded-2xl p-4 flex gap-3 text-emerald-950 animate-fadeIn shrink-0 select-none">
             <CheckCircle2 className="text-emerald-500 shrink-0 mt-0.5" size={18} />
             <div className="text-xs">
-              <span className="font-bold block">Congratulations! Match Confirmed</span>
+              <span className="font-bold block">Job Accepted!</span>
               <p className="mt-1 opacity-90">
-                You accepted the job: <strong>{successMatch.jobId?.title}</strong>. 
-                Please contact the client directly under the &quot;Active Jobs&quot; tab.
+                You&apos;re now matched with the customer for &quot;{successMatch.jobId?.title}&quot;. 
+                Reach out to them below to coordinate timing and logistics.
               </p>
               <button 
                 onClick={() => setSuccessMatch(null)}
@@ -347,15 +347,15 @@ export default function WorkerDashboard() {
               icon={HardHat}
               title={
                 activeTab === 'pending'
-                  ? "No matching jobs found"
-                  : "No active jobs"
+                  ? "No Job Invites Yet"
+                  : "No Active Jobs"
               }
               description={
                 activeTab === 'pending'
                   ? user.availability !== 'available'
-                    ? "Your status is currently set to Offline or Busy. Toggle your status to 'Available' above to begin matching with new local jobs."
-                    : "No job matches in your trade skill and location radius. We will notify you as soon as client requests matching your profile come in."
-                  : "You haven't accepted any job invitations yet. Head over to the 'New Invites' tab to review matched requests."
+                    ? "Your status is set to Offline or Busy. Switch to Available above to start receiving job invites from nearby customers."
+                    : "No jobs match your trade and location right now. We'll notify you the moment a relevant request comes in."
+                  : "No active jobs yet. Check the Incoming Jobs tab to review and accept new opportunities."
               }
             />
           ) : (
@@ -404,7 +404,7 @@ export default function WorkerDashboard() {
                       <div className="flex items-center gap-2">
                         <User size={14} className="text-emerald-600" />
                         <span className="text-xs font-bold text-slate-800">
-                          Client: {job.customer.name}
+                          Customer: {job.customer.name}
                         </span>
                       </div>
                       
@@ -414,7 +414,7 @@ export default function WorkerDashboard() {
                           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg bg-slate-850 hover:bg-slate-900 text-white font-bold text-xs shadow-sm transition-colors text-center select-none"
                         >
                           <Phone size={12} />
-                          <span>Call Client</span>
+                          <span>Call Customer</span>
                         </a>
 
                         <button

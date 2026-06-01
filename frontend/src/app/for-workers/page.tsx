@@ -7,16 +7,16 @@ import { CheckCircle, DollarSign, Smartphone, MapPin, ArrowLeft } from 'lucide-r
 import { useRouter } from 'next/navigation';
 
 const BENEFITS = [
-  { icon: CheckCircle, title: 'Regular Job Opportunities', description: 'Receive job requests from local customers in your service area regularly.' },
-  { icon: DollarSign, title: 'No Commission Cut', description: 'Get paid directly. Crewora never takes a cut of your earnings.' },
-  { icon: Smartphone, title: 'Simple to Use', description: 'Just register, set your status, and receive job notifications directly.' },
-  { icon: MapPin, title: 'Local Work Only', description: 'Jobs in your preferred city and service radius. Save on travel.' },
+  { icon: CheckCircle, title: 'Steady Local Leads', description: 'New job requests from nearby customers land in your feed daily. No cold calling, no hunting.' },
+  { icon: DollarSign, title: 'Zero Platform Fees', description: 'The customer pays you directly. We never take a percentage — your rate is your rate.' },
+  { icon: Smartphone, title: 'Works From Your Phone', description: 'Set your availability with one tap. Get notified when a job matches your trade and location.' },
+  { icon: MapPin, title: 'Your City, Your Radius', description: 'Control exactly how far you travel. No commutes outside your zone.' },
 ];
 
 const STEPS = [
-  { step: 1, title: 'Create Your Profile', description: 'Register with your name, skills, and city. Takes 5 minutes.' },
-  { step: 2, title: 'Get Verified', description: 'Our admin team reviews your profile and approves it within 24-48 hours.' },
-  { step: 3, title: 'Start Matching', description: 'Set your status to Available to instantly receive customer jobs nearby.' },
+  { step: 1, title: 'Sign Up in 2 Minutes', description: 'Enter your name, trade skills, and city. No paperwork, no waiting.' },
+  { step: 2, title: 'Get Approved Fast', description: 'Our team reviews and activates your profile within 24 hours so you can start matching sooner.' },
+  { step: 3, title: 'Flip to Available & Earn', description: 'Toggle your status to Available and receive job invites from customers in your area instantly.' },
 ];
 
 export default function ForWorkersPage() {
@@ -43,18 +43,18 @@ export default function ForWorkersPage() {
         {/* Hero Section */}
         <div className="bg-gradient-to-br from-primary-950 via-primary-800 to-indigo-900 text-white px-6 py-8 rounded-b-[36px] shadow-sm text-left">
           <h1 className="text-xl font-black leading-tight tracking-tight">
-            Looking for Service Work? <br />
+            Tired of Platforms Taking a Cut? <br />
             <span className="bg-gradient-to-r from-primary-200 to-white bg-clip-text text-transparent">
-              Earn Without Commission
+              Keep 100% of What You Earn
             </span>
           </h1>
           <p className="text-[11px] text-slate-300 mt-2 leading-relaxed max-w-xs">
-            Connect directly with customers near you looking for plumbers, electricians, painters, and carpenters. No commissions, no middleman markups.
+            Join the network built for blue-collar pros. Get matched with local customers who need your exact skills — and keep every rupee you charge.
           </p>
           <div className="mt-4">
             <Link href="/worker/register">
               <Button size="md" variant="secondary" className="w-full bg-white text-primary-600 hover:bg-slate-50 font-extrabold">
-                Register as Worker — Free
+                Create Your Free Profile
               </Button>
             </Link>
           </div>
@@ -108,13 +108,13 @@ export default function ForWorkersPage() {
         {/* CTA */}
         <div className="px-5 pt-8 select-none">
           <div className="bg-gradient-to-tr from-primary-900 to-indigo-900 text-white rounded-2xl p-5 text-center shadow-md space-y-3">
-            <h3 className="text-sm font-extrabold">Ready to start earning?</h3>
+            <h3 className="text-sm font-extrabold">Start Receiving Jobs Today</h3>
             <p className="text-[10px] text-slate-300 leading-relaxed">
-              Create your account now and get matching with customers within 48 hours.
+              Sign up free. No commitments. No fees. Start getting matched with paying customers tomorrow.
             </p>
             <Link href="/worker/register">
               <Button size="md" variant="secondary" className="w-full bg-white text-primary-600">
-                Join Crewora Crew
+                Get Started Free
               </Button>
             </Link>
           </div>
