@@ -15,9 +15,26 @@ if (typeof process !== 'undefined' && process.env) {
 }
 
 if (typeof window !== 'undefined') {
-  // If accessing from localhost on the client side, route API requests to localhost directly
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    API_BASE = 'http://localhost:5000/api/v1';
+  // Check if running inside Capacitor native shell
+  const isCapacitor = !!(window as any).Capacitor;
+  
+  if (isCapacitor) {
+    if (process.env.NEXT_PUBLIC_API_URL) {
+      API_BASE = process.env.NEXT_PUBLIC_API_URL;
+    } else {
+      // Fallback for local emulators: Android uses 10.0.2.2, iOS simulator uses localhost
+      const platform = (window as any).Capacitor.getPlatform?.() || 'web';
+      if (platform === 'android') {
+        API_BASE = 'http://10.0.2.2:5000/api/v1';
+      } else {
+        API_BASE = 'http://localhost:5000/api/v1';
+      }
+    }
+  } else {
+    // If accessing from localhost in the web browser, route API requests to localhost directly
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      API_BASE = 'http://localhost:5000/api/v1';
+    }
   }
 }
 

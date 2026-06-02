@@ -13,10 +13,24 @@ import apiClient from '@crewora/api-client';
 let API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
 
 if (typeof window !== 'undefined') {
-  // If accessing from localhost on the client side, route API/Socket requests to localhost directly
-  // to bypass Windows Firewall and network subnet/AP isolation blocks on the local network IP!
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-    API_BASE = 'http://localhost:5000/api/v1';
+  const isCapacitor = !!(window as any).Capacitor;
+  
+  if (isCapacitor) {
+    if (process.env.NEXT_PUBLIC_API_URL) {
+      API_BASE = process.env.NEXT_PUBLIC_API_URL;
+    } else {
+      const platform = (window as any).Capacitor.getPlatform?.() || 'web';
+      if (platform === 'android') {
+        API_BASE = 'http://10.0.2.2:5000/api/v1';
+      } else {
+        API_BASE = 'http://localhost:5000/api/v1';
+      }
+    }
+  } else {
+    // If accessing from localhost on the client side, route API/Socket requests to localhost directly
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      API_BASE = 'http://localhost:5000/api/v1';
+    }
   }
 }
 

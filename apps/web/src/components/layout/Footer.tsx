@@ -1,11 +1,12 @@
 import React from 'react';
 import Link from 'next/link';
+import { AppDownloadButton } from '@/components/app-download/AppDownloadButton';
 
 export function Footer() {
   return (
     <footer className="bg-white border-t border-gray-border mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8 text-left">
 
           {/* Brand */}
           <div className="md:col-span-2">
@@ -39,6 +40,19 @@ export function Footer() {
               <li><Link href="/worker/login" className="hover:text-primary-500 transition-colors">Worker Login</Link></li>
             </ul>
           </div>
+
+          {/* Apps Column */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-navy">Get the App</h4>
+            <div className="flex flex-col items-start gap-2.5">
+              <AppDownloadButton variant="outline" size="sm" source="footer" />
+              <div className="text-[10px] text-gray-caption leading-relaxed font-medium">
+                <p>Version 1.0.0 (Latest)</p>
+                <p className="mt-0.5">Supports Android 8.0+</p>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <div className="border-t border-gray-border mt-10 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">

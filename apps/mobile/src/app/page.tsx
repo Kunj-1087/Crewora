@@ -245,7 +245,7 @@ export default function ExplorePage() {
                         <Star size={13} className="text-amber-500 fill-amber-500" />
                         <span className="font-bold text-slate-800">4.9</span>
                         <span>•</span>
-                        <span>{worker.experienceYears} Years Exp.</span>
+                        <span>{t('explore.years_exp', { years: worker.experienceYears ?? 0 })}</span>
                         <span>•</span>
                         <MapPin size={11} className="text-slate-400" />
                         <span>{worker.city}</span>
@@ -323,7 +323,7 @@ export default function ExplorePage() {
                         <span className="font-bold text-slate-700">4.8</span>
                       </span>
                       <span>•</span>
-                      <span>{worker.experienceYears || 5} yr exp</span>
+                      <span>{t('explore.years_exp_brief', { years: worker.experienceYears || 5 })}</span>
                       <span>•</span>
                       <span className="flex items-center gap-0.5">
                         <MapPin size={10} className="text-slate-400" />
@@ -349,7 +349,7 @@ export default function ExplorePage() {
           <div className="absolute top-0 right-0 w-24 h-24 bg-accent-500/10 rounded-full blur-2xl"></div>
           <div className="relative space-y-3 max-w-[80%]">
             <span className="bg-accent-500/20 text-accent-300 text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
-              Recruitment
+              {t('explore.recruitment_label')}
             </span>
             <h3 className="text-base font-black leading-snug">{t('explore.recruitment_title')}</h3>
             <p className="text-[11px] text-slate-300 leading-normal">

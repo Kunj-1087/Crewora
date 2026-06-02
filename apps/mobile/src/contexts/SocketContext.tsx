@@ -78,8 +78,20 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     let API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
     if (typeof window !== 'undefined') {
-      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        API_BASE = 'http://localhost:5000/api/v1';
+      if (Capacitor.isNativePlatform()) {
+        if (process.env.NEXT_PUBLIC_API_URL) {
+          API_BASE = process.env.NEXT_PUBLIC_API_URL;
+        } else {
+          if (Capacitor.getPlatform() === 'android') {
+            API_BASE = 'http://10.0.2.2:5000/api/v1';
+          } else {
+            API_BASE = 'http://localhost:5000/api/v1';
+          }
+        }
+      } else {
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          API_BASE = 'http://localhost:5000/api/v1';
+        }
       }
     }
 

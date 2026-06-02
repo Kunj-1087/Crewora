@@ -8,8 +8,11 @@
     "verified_pro": "Verified Pro",
     "view_profile": "View Profile",
     "post_job": "Post a Job",
+    "recruitment_label": "Recruitment",
     "recruitment_title": "Grow Your Team",
-    "recruitment_desc": "Need custom professional support for specialized engineering or design work? Post a job on our dashboard."
+    "recruitment_desc": "Need custom professional support for specialized engineering or design work? Post a job on our dashboard.",
+    "years_exp": "{years} Years Exp.",
+    "years_exp_brief": "{years} yr exp"
   },
   "categories": {
     "all": "ALL EXPERTS",

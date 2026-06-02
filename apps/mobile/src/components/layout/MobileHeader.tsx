@@ -6,9 +6,11 @@ import { useRouter } from 'next/navigation';
 import { Bell, User, HardHat, ShieldCheck, Menu, Search } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useMenuStore } from '@/store/menuStore';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export function MobileHeader() {
   const { user } = useAuthStore();
+  const { language, changeLanguage } = useLanguage();
   const router = useRouter();
   const openMenu = useMenuStore((state) => state.openMenu);
 
@@ -46,6 +48,14 @@ export function MobileHeader() {
 
       {/* Right: Actions */}
       <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => changeLanguage(language === 'en' ? 'gu' : 'en')}
+          className="w-10 h-9 text-[11px] font-bold rounded-full border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-colors"
+          aria-label="Toggle language"
+        >
+          {language === 'en' ? 'EN' : 'GU'}
+        </button>
         {/* Search icon triggers filter or highlights search bar */}
         <button 
           onClick={handleSearchClick}

@@ -7,6 +7,7 @@ import { Menu, X, ChevronDown, User, LogOut, LayoutDashboard } from 'lucide-reac
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@crewora/ui';
 import { clsx } from 'clsx';
+import { AppDownloadButton } from '@/components/app-download/AppDownloadButton';
 
 export function Navbar() {
   const { user, logout } = useAuthStore();
@@ -50,6 +51,8 @@ export function Navbar() {
             >
               Find Workers
             </Link>
+
+            <AppDownloadButton variant="secondary" size="sm" source="navbar" />
 
             {user ? (
               <div className="relative">
@@ -126,6 +129,10 @@ export function Navbar() {
             <Link href="/workers" className="block py-2.5 text-gray-body hover:text-primary-500 font-medium" onClick={() => setMobileOpen(false)}>
               Find Workers
             </Link>
+
+            <div className="py-2">
+              <AppDownloadButton variant="secondary" size="sm" source="navbar" fullWidth />
+            </div>
 
             {user ? (
               <>

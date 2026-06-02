@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useLanguage } from '@/contexts/LanguageContext';
 import apiClient from '@crewora/api-client';
 import { Worker } from '@crewora/shared';
+import { AppDownloadButton } from '@/components/app-download/AppDownloadButton';
 
 const CATEGORIES = [
   { id: 'all', label: 'ALL EXPERTS', apiValue: '' },
@@ -143,6 +144,32 @@ export default function ExplorePage() {
   return (
     <div className="flex-1 flex flex-col bg-[#F8FAFC] animate-fadeIn select-none pb-20">
       
+      {/* App Download Promo Hero Banner */}
+      <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 text-white px-6 py-10 shadow-sm text-left relative overflow-hidden select-none border-b border-slate-800">
+        <div className="absolute top-0 right-0 w-36 h-36 bg-accent-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-primary-400/10 rounded-full blur-2xl pointer-events-none"></div>
+
+        <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+          <div className="space-y-2 max-w-xl">
+            <span className="bg-primary-500/20 text-primary-300 border border-primary-500/30 text-[9px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider inline-block">
+              Crewora Mobile App
+            </span>
+            <h2 className="text-xl md:text-3xl font-black leading-tight tracking-tight">
+              Get matched with trusted pros on the go
+            </h2>
+            <p className="text-xs text-slate-350 leading-relaxed max-w-md">
+              Download the official Crewora Android application to chat directly with workers, get live updates, and manage bookings from anywhere.
+            </p>
+          </div>
+          <div className="shrink-0 w-full md:w-auto flex flex-col items-stretch md:items-start gap-2 pt-2 md:pt-0">
+            <AppDownloadButton variant="secondary" size="md" source="hero" />
+            <Link href="/download-app" className="text-[10px] font-bold text-center md:text-left text-slate-400 hover:text-white transition-colors underline">
+              View installation guide & specifications
+            </Link>
+          </div>
+        </div>
+      </div>
+
       {/* Search Header Container */}
       <div className="px-5 pt-6 pb-2 bg-white border-b border-slate-100 shrink-0">
         <h1 className="text-xl font-extrabold text-[#0b1528] tracking-tight">{t('explore.title')}</h1>
