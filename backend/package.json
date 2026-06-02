@@ -7,6 +7,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "db:start": "powershell -ExecutionPolicy Bypass -File ../database/start_db.ps1",
     "db:stop": "powershell -ExecutionPolicy Bypass -File ../database/stop_db.ps1",
+    "db:seed": "ts-node -r dotenv/config ../database/seeders/seed.ts",
     "dev:all": "npm run db:start && npm run dev",
     "build": "tsc",
     "start": "node dist/server.js",
@@ -16,6 +17,7 @@
     "audit": "npm audit --audit-level=high"
   },
   "dependencies": {
+    "@crewora/shared": "*",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "bcryptjs": "^2.4.3",

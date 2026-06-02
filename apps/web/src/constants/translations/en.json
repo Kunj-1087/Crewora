@@ -1,0 +1,44 @@
+{
+  "explore": {
+    "title": "Explore Experts",
+    "subtitle": "Find verified professional talent instantly",
+    "search_placeholder": "Search for professional services...",
+    "no_experts": "No experts found",
+    "reset_filters": "Try resetting filters or adjusting your search term.",
+    "verified_pro": "Verified Pro",
+    "view_profile": "View Profile",
+    "post_job": "Post a Job",
+    "recruitment_title": "Grow Your Team",
+    "recruitment_desc": "Need custom professional support for specialized engineering or design work? Post a job on our dashboard."
+  },
+  "categories": {
+    "all": "ALL EXPERTS",
+    "plumbing": "PLUMBING",
+    "electrician": "ELECTRICIAN",
+    "carpentry": "CARPENTRY",
+    "painting": "PAINTING",
+    "masonry": "MASONRY",
+    "hvac": "HVAC",
+    "roofing": "ROOFING"
+  },
+  "profile": {
+    "title": "My Profile",
+    "worker_title": "Worker Profile",
+    "back": "Back",
+    "account_info": "Account Information",
+    "professional_profile": "Professional Profile",
+    "full_name": "Full Name",
+    "phone_number": "Phone Number",
+    "default_address": "Default Address",
+    "service_city": "Service City",
+    "exp_years": "Years of Experience",
+    "bio": "Professional Biography",
+    "bio_placeholder": "Tell clients about your work quality, standard tools you carry, and general availability times...",
+    "save_changes": "Save Profile Changes",
+    "account_actions": "Account Actions",
+    "sign_out": "Sign Out",
+    "deactivate": "Deactivate / Delete Account",
+    "lang_pref": "Language Preference / ભાષા પસંદગી",
+    "trade_skills": "Trade Skills"
+  }
+}

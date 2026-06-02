@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">Crewora</string>
-    <string name="title_activity_main">Crewora</string>
-    <string name="package_name">com.crewora.app</string>
-    <string name="custom_url_scheme">com.crewora.app</string>
-</resources>
