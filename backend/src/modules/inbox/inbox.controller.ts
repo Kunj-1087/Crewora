@@ -130,7 +130,7 @@ export async function getMessages(
       data: { isRead: true }
     });
 
-    const mapped = messages.map((m) => ({
+    const mapped = messages.map((m: any) => ({
       id: m.id,
       sender: m.senderId === userId ? 'me' : 'other',
       text: m.content,

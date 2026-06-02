@@ -103,7 +103,7 @@ export async function getWorkerReviews(
   const totalReviews = aggregate._count.id || 0;
 
   return {
-    reviews: reviews.map((r) => ({
+    reviews: reviews.map((r: any) => ({
       id: r.id,
       rating: r.rating,
       comment: r.comment,
