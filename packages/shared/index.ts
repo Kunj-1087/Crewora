@@ -1,4 +1,4 @@
-export * from './types';
+export * from './types/index';
 export * from './validators/auth.schemas';
 export * from './validators/job.schemas';
 
