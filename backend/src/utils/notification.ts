@@ -102,7 +102,7 @@ export async function sendPushToUser(
       return;
     }
 
-    const tokens = deviceTokens.map((t) => t.token);
+    const tokens = deviceTokens.map((t: any) => t.token);
 
     if (isFirebaseInitialized) {
       const message: admin.messaging.MulticastMessage = {
