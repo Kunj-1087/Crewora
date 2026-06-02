@@ -8,17 +8,17 @@
     "backend"
   ],
   "scripts": {
-    "dev:web": "npm run dev --workspace=@crewora/web",
-    "dev:mobile": "npm run dev --workspace=@crewora/mobile",
-    "dev:backend": "npm run dev --workspace=crewora-backend",
-    "build:web": "npm run build --workspace=@crewora/web",
-    "build:mobile": "npm run build --workspace=@crewora/mobile",
-    "build:backend": "npm run build --workspace=crewora-backend",
+    "dev:web": "npm run dev -w @crewora/web",
+    "dev:mobile": "npm run dev -w @crewora/mobile",
+    "dev:backend": "npm run dev -w crewora-backend",
+    "build:web": "npm run build -w @crewora/web",
+    "build:mobile": "npm run build -w @crewora/mobile",
+    "build:backend": "npm run build -w crewora-backend",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
-    "db:start": "npm run db:start --workspace=crewora-backend",
-    "db:stop": "npm run db:stop --workspace=crewora-backend"
+    "db:start": "npm run db:start -w crewora-backend",
+    "db:stop": "npm run db:stop -w crewora-backend"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^6.18.1",
