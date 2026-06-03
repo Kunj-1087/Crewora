@@ -368,34 +368,83 @@ async function matchWorkersForJob(jobId: string, io?: any) {
   const lng = job.longitude;
   const radiusKm = MAX_MATCH_RADIUS_METERS / 1000; // 30 km
 
-  let workers: any[] = [];
+  // Find all active, available workers whose tradeCategories includes the job's tradeCategory
+  const allPotentialWorkers = await prisma.worker.findMany({
+    where: {
+      isActive: true,
+      availability: 'available',
+      // In development mode, match any worker of matching trade category (allow approved or pending)
+      // In production mode, match only approved workers
+      verificationStatus: process.env.NODE_ENV === 'development'
+        ? { in: ['approved', 'pending'] }
+        : 'approved',
+      tradeCategories: {
+        has: job.tradeCategory,
+      },
+    },
+  });
 
-  if (process.env.NODE_ENV === 'development') {
-    // In development mode, match any worker of the matching trade category
-    workers = await prisma.$queryRaw`
-      SELECT id, name, phone, "tradeCategories", city, availability, "verificationStatus"
-      FROM "Worker"
-      WHERE "verificationStatus" = 'approved'
-        AND "availability" = 'available'
-        AND "isActive" = true
-        AND ${job.tradeCategory} = ANY("tradeCategories")
-      LIMIT ${MAX_WORKERS_TO_MATCH}
-    `;
-  } else {
-    // Find verified, available workers in the job's trade category within radius
-    workers = await prisma.$queryRaw`
-      SELECT id, name, phone, "tradeCategories", city, availability, "verificationStatus"
-      FROM "Worker"
-      WHERE "verificationStatus" = 'approved'
-        AND "availability" = 'available'
-        AND "isActive" = true
-        AND ${job.tradeCategory} = ANY("tradeCategories")
-        AND "latitude" IS NOT NULL AND "longitude" IS NOT NULL
-        AND (6371 * acos(cos(radians(${lat})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${lng})) + sin(radians(${lat})) * sin(radians(latitude)))) < ${radiusKm}
-      ORDER BY (6371 * acos(cos(radians(${lat})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${lng})) + sin(radians(${lat})) * sin(radians(latitude)))) ASC
-      LIMIT ${MAX_WORKERS_TO_MATCH}
-    `;
+  const matchedWorkersMap = new Map<string, any>();
+
+  for (const worker of allPotentialWorkers) {
+    let distance: number | null = null;
+    let matchesDistance = false;
+
+    // Check if worker has coordinates
+    if (
+      worker.latitude !== null &&
+      worker.longitude !== null &&
+      lat !== null &&
+      lng !== null
+    ) {
+      // Haversine distance formula in JS
+      const R = 6371; // km
+      const dLat = ((worker.latitude - lat) * Math.PI) / 180;
+      const dLon = ((worker.longitude - lng) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos((lat * Math.PI) / 180) *
+          Math.cos((worker.latitude * Math.PI) / 180) *
+          Math.sin(dLon / 2) *
+          Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      distance = R * c;
+
+      if (distance <= radiusKm) {
+        matchesDistance = true;
+      }
+    }
+
+    // Fallback: match by city substring if worker doesn't have coordinates or distance is outside but city matches
+    let matchesCity = false;
+    if (worker.city && job.address) {
+      const workerCityClean = worker.city.trim().toLowerCase();
+      const jobAddressClean = job.address.toLowerCase();
+      if (jobAddressClean.includes(workerCityClean) || workerCityClean.includes(jobAddressClean)) {
+        matchesCity = true;
+      }
+    }
+
+    // If matches geolocation OR fallback city check, include this worker
+    if (matchesDistance || matchesCity) {
+      matchedWorkersMap.set(worker.id, {
+        ...worker,
+        distance,
+      });
+    }
   }
+
+  // Sort: Distance-matched first, then fallback matches
+  const sortedWorkers = Array.from(matchedWorkersMap.values()).sort((a, b) => {
+    if (a.distance !== null && b.distance !== null) {
+      return a.distance - b.distance;
+    }
+    if (a.distance !== null) return -1;
+    if (b.distance !== null) return 1;
+    return 0;
+  });
+
+  const workers = sortedWorkers.slice(0, MAX_WORKERS_TO_MATCH);
 
   if (workers.length === 0) {
     logger.info('No workers found for job', { jobId });
