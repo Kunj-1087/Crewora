@@ -29,7 +29,7 @@ export function QRCodeModal({ isOpen, onClose, downloadUrl }: QRCodeModalProps) 
             light: '#ffffff',
           },
         },
-        (error) => {
+        (error: Error | null | undefined) => {
           if (error) console.error('Error generating QR code:', error);
         }
       );

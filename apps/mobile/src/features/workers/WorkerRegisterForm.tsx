@@ -40,6 +40,7 @@ export function WorkerRegisterForm() {
   const [selectedTrades, setSelectedTrades] = useState<string[]>([]);
   const [otpSent, setOtpSent] = useState(false);
   const [devOtp, setDevOtp] = useState<string | null>(null);
+  const [showDevPopup, setShowDevPopup] = useState(false);
 
   const { register, handleSubmit, setValue, getValues, setError, trigger, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -66,6 +67,7 @@ export function WorkerRegisterForm() {
       setOtpSent(true);
       if (generatedOtp) {
         setDevOtp(generatedOtp);
+        setShowDevPopup(true);
       }
     } catch {
       // Error handled in store
@@ -102,11 +104,6 @@ export function WorkerRegisterForm() {
         <div className="bg-error-light text-error text-sm px-4 py-3 rounded-lg border border-red-200">{error}</div>
       )}
 
-      {devOtp && (
-        <div className="bg-emerald-50 text-emerald-800 text-sm px-4 py-3 rounded-lg border border-emerald-200 animate-fadeIn">
-          <strong>Demo Mode OTP:</strong> {devOtp} (use this code to verify)
-        </div>
-      )}
 
       <Input label="Full Name" placeholder="Suresh Kumar" leftIcon={<User size={16} />} error={errors.name?.message} required disabled={otpSent} {...register('name')} />
       <Input label="Phone Number" type="tel" placeholder="9876543210" leftIcon={<Phone size={16} />} error={errors.phone?.message} required disabled={otpSent} {...register('phone')} />
@@ -183,6 +180,51 @@ export function WorkerRegisterForm() {
         Already registered?{' '}
         <Link href="/worker/login" className="text-primary-500 font-medium hover:underline">Sign In</Link>
       </p>
+      {showDevPopup && devOtp && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div 
+            onClick={() => setShowDevPopup(false)}
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" 
+          />
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm border border-slate-100 overflow-hidden relative z-10 p-6 animate-scaleIn select-none space-y-4">
+            <div className="text-center">
+              <h3 className="text-base font-black text-slate-900 tracking-tight">Demo Verification Code</h3>
+              <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                An OTP verification code was generated for this phone number in developer mode.
+              </p>
+            </div>
+            <div className="flex flex-col items-center justify-center bg-slate-50 py-4 rounded-xl border border-dashed border-slate-200">
+              <span className="text-3xl font-black tracking-widest text-primary-500 font-mono">
+                {devOtp}
+              </span>
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">
+                Valid for 5 minutes
+              </span>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowDevPopup(false)}
+                className="flex-1 text-xs py-2.5 h-10 border-slate-200 text-slate-600 hover:bg-slate-50"
+              >
+                Dismiss
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  setValue('otp', devOtp);
+                  setShowDevPopup(false);
+                  onSubmit(getValues());
+                }}
+                className="flex-1 bg-accent-600 hover:bg-accent-700 active:bg-accent-800 text-white font-extrabold text-xs py-2.5 rounded-xl border-none h-10"
+              >
+                Autofill & Verify
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }
