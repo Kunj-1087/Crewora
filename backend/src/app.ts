@@ -61,7 +61,7 @@ app.use(cors({
       ))
     );
 
-    if (!origin || allowedOrigins.includes(origin) || isMobileOrLocal) {
+    if (!origin || origin === 'null' || allowedOrigins.includes(origin) || isMobileOrLocal) {
       callback(null, true);
     } else {
       callback(new Error(`CORS: origin ${origin} not allowed`));
