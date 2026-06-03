@@ -8,11 +8,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
 import { tokenStore } from './tokenStore';
 
-let API_BASE = 'http://localhost:5000/api/v1';
-
-if (typeof process !== 'undefined' && process.env) {
-  API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
-}
+let API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
 
 if (typeof window !== 'undefined') {
   // Check if running inside Capacitor native shell
