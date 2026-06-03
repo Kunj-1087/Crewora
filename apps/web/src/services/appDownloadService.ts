@@ -29,7 +29,7 @@ export const appDownloadService = {
     if (playStoreUrl && playStoreUrl.trim() !== '') {
       return playStoreUrl;
     }
-    return process.env.NEXT_PUBLIC_ANDROID_APK_URL || '';
+    return process.env.NEXT_PUBLIC_ANDROID_APK_URL || '/crewora-app.apk';
   },
 
   /**
