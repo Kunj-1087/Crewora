@@ -29,7 +29,21 @@ export const appDownloadService = {
     if (playStoreUrl && playStoreUrl.trim() !== '') {
       return playStoreUrl;
     }
-    return process.env.NEXT_PUBLIC_ANDROID_APK_URL || '/crewora-app.apk';
+    
+    let apkUrl = process.env.NEXT_PUBLIC_ANDROID_APK_URL || '/crewora-app.apk';
+
+    // Self-healing override: If running on a deployed site, but apkUrl points to localhost or drive.google.com,
+    // force relative static download path to prevent connection timeouts/errors.
+    if (typeof window !== 'undefined') {
+      const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+      if (isProduction) {
+        if (apkUrl.includes('localhost') || apkUrl.includes('127.0.0.1') || apkUrl.includes('drive.google.com')) {
+          apkUrl = '/crewora-app.apk';
+        }
+      }
+    }
+    
+    return apkUrl;
   },
 
   /**
