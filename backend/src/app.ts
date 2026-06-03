@@ -46,16 +46,19 @@ app.use(cors({
   origin: (origin, callback) => {
     const allowedOrigins = env.CORS_ORIGINS.split(',').map((o) => o.trim());
     
-    // In development, dynamically allow localhost, loopback, local subnet IPs, and Capacitor webview origins
-    const isLocalDev = env.NODE_ENV === 'development' && origin && (
+    // Allow local and Capacitor mobile origins in all environments (including production)
+    // so native mobile shells can communicate with the backend.
+    const isMobileOrLocal = origin && (
       origin.startsWith('http://localhost') ||
       origin.startsWith('http://127.0.0.1') ||
-      origin.startsWith('http://192.168.') ||
-      origin.startsWith('http://10.') ||
-      origin.startsWith('capacitor://')
+      origin.startsWith('capacitor://') ||
+      (env.NODE_ENV === 'development' && (
+        origin.startsWith('http://192.168.') ||
+        origin.startsWith('http://10.')
+      ))
     );
 
-    if (!origin || allowedOrigins.includes(origin) || isLocalDev) {
+    if (!origin || allowedOrigins.includes(origin) || isMobileOrLocal) {
       callback(null, true);
     } else {
       callback(new Error(`CORS: origin ${origin} not allowed`));
