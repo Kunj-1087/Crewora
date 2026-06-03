@@ -13,9 +13,12 @@ import apiClient from '@crewora/api-client';
 let API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
 
 if (typeof window !== 'undefined') {
-  // If accessing from localhost on the client side, route API/Socket requests to localhost directly
+  // If accessing from localhost on the client side, route API/Socket requests to localhost directly (only in development)
   // to bypass Windows Firewall and network subnet/AP isolation blocks on the local network IP!
-  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+  if (
+    process.env.NODE_ENV !== 'production' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ) {
     API_BASE = 'http://localhost:5000/api/v1';
   }
 }

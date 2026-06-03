@@ -31,8 +31,11 @@ if (typeof window !== 'undefined') {
       }
     }
   } else {
-    // If accessing from localhost in the web browser, route API requests to localhost directly
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    // If accessing from localhost in the web browser, route API requests to localhost directly (only in development)
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ) {
       API_BASE = 'http://localhost:5000/api/v1';
     }
   }

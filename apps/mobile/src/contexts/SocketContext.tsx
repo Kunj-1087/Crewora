@@ -89,7 +89,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } else {
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        if (
+          process.env.NODE_ENV !== 'production' &&
+          (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        ) {
           API_BASE = 'http://localhost:5000/api/v1';
         }
       }
