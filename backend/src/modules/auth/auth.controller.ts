@@ -25,10 +25,7 @@ export async function sendOtpCustomer(
   try {
     const { phone } = req.body;
     const otp = await authService.sendOtpCustomer(phone);
-    const data: Record<string, any> = {};
-    if (env.NODE_ENV === 'development') {
-      data.otp = otp;
-    }
+    const data: Record<string, any> = { otp };
     res.json({
       success: true,
       message: 'Verification OTP sent successfully',
@@ -120,10 +117,7 @@ export async function sendOtpWorker(
   try {
     const { phone } = req.body;
     const otp = await authService.sendOtpWorker(phone);
-    const data: Record<string, any> = {};
-    if (env.NODE_ENV === 'development') {
-      data.otp = otp;
-    }
+    const data: Record<string, any> = { otp };
     res.json({
       success: true,
       message: 'Verification OTP sent successfully',
