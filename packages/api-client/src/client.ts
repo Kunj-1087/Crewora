@@ -43,7 +43,7 @@ export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE,
   withCredentials: true, // Send cookies (refresh token)
   headers: { 'Content-Type': 'application/json' },
-  timeout: 10000,
+  timeout: 60000,
 });
 
 // ─── Separate Refresh Client (no interceptors — prevents loops) ───────────────
@@ -52,7 +52,7 @@ const refreshClient: AxiosInstance = axios.create({
   baseURL: API_BASE,
   withCredentials: true,
   headers: { 'Content-Type': 'application/json' },
-  timeout: 5000,
+  timeout: 30000,
 });
 
 // ─── Request Interceptor — attach access token ────────────────────────────────

@@ -142,9 +142,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       // Try customer first, then worker
       try {
-        const { data } = await apiClient.post('/auth/customer/refresh', undefined, { timeout: 4000 });
+        const { data } = await apiClient.post('/auth/customer/refresh', undefined, { timeout: 30000 });
         tokenStore.setToken(data.data.accessToken, 'customer');
-        const profileRes = await apiClient.get('/customers/me', { timeout: 4000 });
+        const profileRes = await apiClient.get('/customers/me', { timeout: 30000 });
         set({ user: { ...profileRes.data.data.customer, role: 'customer' }, isInitialized: true });
         return;
       } catch {
@@ -152,9 +152,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       try {
-        const { data } = await apiClient.post('/auth/worker/refresh', undefined, { timeout: 4000 });
+        const { data } = await apiClient.post('/auth/worker/refresh', undefined, { timeout: 30000 });
         tokenStore.setToken(data.data.accessToken, 'worker');
-        const profileRes = await apiClient.get('/workers/me', { timeout: 4000 });
+        const profileRes = await apiClient.get('/workers/me', { timeout: 30000 });
         set({ user: { ...profileRes.data.data.worker, role: 'worker' }, isInitialized: true });
         return;
       } catch {
