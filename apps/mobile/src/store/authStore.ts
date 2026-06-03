@@ -59,7 +59,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ isLoading: false });
       return data.data?.otp; // In development mode, the OTP is returned for testing convenience.
     } catch (err: unknown) {
-      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to send OTP';
+      const axiosError = err as any;
+      const status = axiosError.response?.status ? ` (Status: ${axiosError.response.status})` : '';
+      const apiEndpoint = apiClient.defaults.baseURL || 'undefined';
+      const message = axiosError.response?.data?.message || `Failed to send OTP. Network Error or Server Unreachable. [API Base: ${apiEndpoint}]${status}`;
       set({ error: message, isLoading: false });
       throw err;
     }
@@ -73,7 +76,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       tokenStore.setToken(accessToken, 'customer');
       set({ user: { ...user, role: 'customer' }, isLoading: false });
     } catch (err: unknown) {
-      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Login failed';
+      const axiosError = err as any;
+      const status = axiosError.response?.status ? ` (Status: ${axiosError.response.status})` : '';
+      const apiEndpoint = apiClient.defaults.baseURL || 'undefined';
+      const message = axiosError.response?.data?.message || `Login failed. [API Base: ${apiEndpoint}]${status}`;
       set({ error: message, isLoading: false });
       throw err;
     }
@@ -87,7 +93,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       tokenStore.setToken(accessToken, 'worker');
       set({ user: { ...user, role: 'worker' }, isLoading: false });
     } catch (err: unknown) {
-      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Login failed';
+      const axiosError = err as any;
+      const status = axiosError.response?.status ? ` (Status: ${axiosError.response.status})` : '';
+      const apiEndpoint = apiClient.defaults.baseURL || 'undefined';
+      const message = axiosError.response?.data?.message || `Login failed. [API Base: ${apiEndpoint}]${status}`;
       set({ error: message, isLoading: false });
       throw err;
     }

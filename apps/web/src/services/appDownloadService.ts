@@ -43,6 +43,13 @@ export const appDownloadService = {
       }
     }
     
+    // Add cache-buster to relative APK URL to force browser to fetch latest binary
+    if (apkUrl.startsWith('/')) {
+      const version = this.getMetadata().version || '1.0.0';
+      const cacheBuster = typeof Date !== 'undefined' ? Date.now() : 'latest';
+      apkUrl = `${apkUrl}?v=${version}&t=${cacheBuster}`;
+    }
+    
     return apkUrl;
   },
 
