@@ -59,6 +59,17 @@ model Worker {
   matches                     Match[]
   assignedJobs                Job[]     @relation("WorkerJobs")
   reviews                     Review[]
+  hourlyRate                  Int?            @default(0)
+  portfolioItems              PortfolioItem[]
+}
+
+model PortfolioItem {
+  id        String   @id @default(uuid())
+  workerId  String
+  worker    Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  title     String
+  image     String
+  createdAt DateTime @default(now())
 }
 
 model Otp {

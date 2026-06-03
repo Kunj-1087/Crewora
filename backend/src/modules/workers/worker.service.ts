@@ -17,11 +17,16 @@ export const updateWorkerProfileSchema = z.object({
     .array(z.enum(['plumber', 'electrician', 'carpenter', 'painter', 'welder', 'mason', 'hvac', 'tiler', 'roofer', 'other']))
     .min(1)
     .optional(),
+  hourlyRate: z.number().min(0).optional(),
+  certifications: z.array(z.string()).optional(),
 });
 
 export async function getWorkerProfile(workerId: string) {
   const worker = await prisma.worker.findUnique({
     where: { id: workerId },
+    include: {
+      portfolioItems: true,
+    },
   });
   if (!worker || !worker.isActive) throw new AppError('Worker not found', 404);
   return worker;
@@ -151,4 +156,35 @@ export async function discoverWorkers(query: {
       totalPages: Math.ceil(total / limit),
     },
   };
+}
+
+export async function addPortfolioItem(workerId: string, title: string, image: string) {
+  const worker = await prisma.worker.findUnique({
+    where: { id: workerId },
+  });
+  if (!worker) throw new AppError('Worker not found', 404);
+
+  const portfolioItem = await prisma.portfolioItem.create({
+    data: {
+      workerId,
+      title,
+      image,
+    },
+  });
+
+  return portfolioItem;
+}
+
+export async function removePortfolioItem(workerId: string, itemId: string) {
+  const item = await prisma.portfolioItem.findUnique({
+    where: { id: itemId },
+  });
+  if (!item) throw new AppError('Portfolio item not found', 404);
+  if (item.workerId !== workerId) throw new AppError('Unauthorized', 403);
+
+  await prisma.portfolioItem.delete({
+    where: { id: itemId },
+  });
+
+  return { success: true };
 }

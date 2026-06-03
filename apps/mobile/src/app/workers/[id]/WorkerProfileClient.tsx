@@ -190,19 +190,21 @@ export default function WorkerProfileClient() {
   }
 
   // Get rich metadata or fallback default
-  const meta = WORKERS_PORTFOLIOS[worker.id] || {
-    rate: '$75/hr',
-    satisfaction: '98%',
-    completedJobs: 120,
-    awards: ['Certified Expert Pro', 'Top Platform Partner'],
-    portfolio: [
-      { title: 'Emergency Repair Work', image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&q=80&w=250' },
-      { title: 'Residential Installation', image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&q=80&w=250' }
-    ],
-    reviews: [
-      { author: 'Jane Watson', rating: 5, date: 'Oct 04, 2023', comment: 'Extremely professional and highly recommended for any contract project.' }
-    ]
-  };
+  const mockRate = WORKERS_PORTFOLIOS[worker.id]?.rate || '$75/hr';
+  const displayRate = worker.hourlyRate ? `$${worker.hourlyRate}/hr` : mockRate;
+
+  const displayCompletedJobs = worker.completedJobsCount !== undefined ? worker.completedJobsCount : (WORKERS_PORTFOLIOS[worker.id]?.completedJobs || 0);
+
+  const displaySatisfaction = worker.satisfactionRate || (WORKERS_PORTFOLIOS[worker.id]?.satisfaction || '100%');
+
+  const mockAwards = WORKERS_PORTFOLIOS[worker.id]?.awards || ['Certified Expert Pro', 'Top Platform Partner'];
+  const displayAwards = worker.certifications && worker.certifications.length > 0 ? worker.certifications : mockAwards;
+
+  const mockPortfolio = WORKERS_PORTFOLIOS[worker.id]?.portfolio || [
+    { title: 'Emergency Repair Work', image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?auto=format&fit=crop&q=80&w=250' },
+    { title: 'Residential Installation', image: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&q=80&w=250' }
+  ];
+  const displayPortfolio = worker.portfolioItems && worker.portfolioItems.length > 0 ? worker.portfolioItems.map((p: any) => ({ title: p.title, image: p.image })) : mockPortfolio;
 
   const displayReviews = reviewsData && reviewsData.reviews && reviewsData.reviews.length > 0
     ? reviewsData.reviews.map((r: any) => ({
@@ -211,10 +213,10 @@ export default function WorkerProfileClient() {
         date: new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
         comment: r.comment || ''
       }))
-    : meta.reviews;
+    : (WORKERS_PORTFOLIOS[worker.id]?.reviews || []);
 
-  const displayAverageRating = reviewsData?.stats?.averageRating ?? null;
-  const displayTotalReviews = reviewsData?.stats?.totalReviews ?? null;
+  const displayAverageRating = reviewsData?.stats?.averageRating ?? worker.averageRating ?? null;
+  const displayTotalReviews = reviewsData?.stats?.totalReviews ?? worker.totalReviews ?? null;
 
 
   return (
@@ -270,7 +272,7 @@ export default function WorkerProfileClient() {
                 <span>{worker.city}</span>
               </span>
               <span>•</span>
-              <span className="font-extrabold text-[#0b1528]">{meta.rate}</span>
+              <span className="font-extrabold text-[#0b1528]">{displayRate}</span>
             </div>
           </div>
         </div>
@@ -282,12 +284,12 @@ export default function WorkerProfileClient() {
         {/* ─── Statistics Panel (Deep Navy) ─────────────────────────────────── */}
         <div className="bg-[#0b1528] rounded-2xl p-4 text-white shadow-sm grid grid-cols-3 divide-x divide-white/10 text-center">
           <div>
-            <span className="block text-base font-black text-white">{meta.completedJobs}</span>
+            <span className="block text-base font-black text-white">{displayCompletedJobs}</span>
             <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Jobs Completed</span>
           </div>
           <div>
             <span className="block text-base font-black text-white">
-              {displayAverageRating !== null && displayAverageRating > 0 ? `${displayAverageRating} ★` : meta.satisfaction}
+              {displayAverageRating !== null && displayAverageRating > 0 ? `${displayAverageRating} ★` : displaySatisfaction}
             </span>
             <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
               {displayAverageRating !== null && displayAverageRating > 0 ? 'Avg Rating' : 'Satisfaction'}
@@ -307,11 +309,11 @@ export default function WorkerProfileClient() {
             {worker.bio}
           </p>
           
-          {meta.awards && meta.awards.length > 0 && (
+          {displayAwards && displayAwards.length > 0 && (
             <div className="pt-3 border-t border-slate-50 space-y-1.5">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Certifications & Awards</span>
               <div className="flex flex-col gap-1.5">
-                {meta.awards.map((award, i) => (
+                {displayAwards.map((award: string, i: number) => (
                   <div key={i} className="flex items-center gap-2 text-xs text-[#065f46] font-bold bg-emerald-50 px-2.5 py-1.5 rounded-xl border border-emerald-100">
                     <Award size={13} className="text-[#10b981] shrink-0" />
                     <span>{award}</span>
@@ -330,7 +332,7 @@ export default function WorkerProfileClient() {
           </h3>
           
           <div className="grid grid-cols-3 gap-2">
-            {meta.portfolio.map((port, idx) => (
+            {displayPortfolio.map((port: any, idx: number) => (
               <div key={idx} className="space-y-1 cursor-pointer group">
                 <div className="h-20 w-full rounded-xl bg-slate-100 overflow-hidden relative border border-slate-100">
                   {/* eslint-disable-next-line @next/next/no-img-element */}

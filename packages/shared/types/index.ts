@@ -33,6 +33,14 @@ export interface Customer {
   createdAt: string;
 }
 
+export interface PortfolioItem {
+  id: string;
+  workerId: string;
+  title: string;
+  image: string;
+  createdAt: string;
+}
+
 export interface Worker {
   id: string;
   _id?: string;
@@ -48,6 +56,8 @@ export interface Worker {
   verificationStatus: VerificationStatus;
   profilePhoto?: string;
   certifications?: string[];
+  hourlyRate?: number;
+  portfolioItems?: PortfolioItem[];
   isActive: boolean;
   languagePreference?: 'en' | 'gu';
   createdAt: string;

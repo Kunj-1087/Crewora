@@ -67,7 +67,35 @@ router.get('/', validate({ query: workerDiscoveryQuerySchema }), async (req, res
 router.get('/me', requireAuth('worker'), async (req, res, next) => {
   try {
     const worker = await workerService.getWorkerProfile(req.user!.id);
-    res.json({ success: true, data: { worker } });
+
+    // Fetch dynamic stats
+    const completedJobsCount = await prisma.job.count({
+      where: { assignedWorkerId: worker.id, status: 'completed' },
+    });
+
+    const reviewsAggregate = await prisma.review.aggregate({
+      where: { workerId: worker.id, reviewer: 'customer' },
+      _avg: { rating: true },
+      _count: { id: true },
+    });
+
+    const averageRating = reviewsAggregate._avg.rating
+      ? parseFloat(reviewsAggregate._avg.rating.toFixed(1))
+      : 0;
+    const totalReviews = reviewsAggregate._count.id || 0;
+    const satisfactionRate = averageRating > 0
+      ? Math.round((averageRating / 5) * 100)
+      : 100;
+
+    const workerWithStats = {
+      ...worker,
+      completedJobsCount,
+      averageRating,
+      totalReviews,
+      satisfactionRate: `${satisfactionRate}%`,
+    };
+
+    res.json({ success: true, data: { worker: workerWithStats } });
   } catch (error) { next(error); }
 });
 
@@ -115,10 +143,51 @@ router.get('/:id', validate({ params: workerIdParamSchema }), async (req, res, n
         bio: true,
         availability: true,
         profilePhoto: true,
+        certifications: true,
+        hourlyRate: true,
+        portfolioItems: {
+          select: {
+            id: true,
+            title: true,
+            image: true,
+            createdAt: true,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        },
       },
     });
     if (!worker) throw new AppError('Worker not found', 404);
-    res.json({ success: true, data: { worker } });
+
+    // Fetch dynamic stats
+    const completedJobsCount = await prisma.job.count({
+      where: { assignedWorkerId: worker.id, status: 'completed' },
+    });
+
+    const reviewsAggregate = await prisma.review.aggregate({
+      where: { workerId: worker.id, reviewer: 'customer' },
+      _avg: { rating: true },
+      _count: { id: true },
+    });
+
+    const averageRating = reviewsAggregate._avg.rating
+      ? parseFloat(reviewsAggregate._avg.rating.toFixed(1))
+      : 0;
+    const totalReviews = reviewsAggregate._count.id || 0;
+    const satisfactionRate = averageRating > 0
+      ? Math.round((averageRating / 5) * 100)
+      : 100;
+
+    const workerProfile = {
+      ...worker,
+      completedJobsCount,
+      averageRating,
+      totalReviews,
+      satisfactionRate: `${satisfactionRate}%`,
+    };
+
+    res.json({ success: true, data: { worker: workerProfile } });
   } catch (error) { next(error); }
 });
 
@@ -175,6 +244,82 @@ router.post(
         success: true,
         message: 'Profile photo updated successfully',
         data: { worker }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Configure upload storage for worker portfolio projects
+const portfolioStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, 'portfolio-' + req.user!.id + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const uploadPortfolio = multer({
+  storage: portfolioStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (_req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    if (extname && mimetype) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only images (jpg, jpeg, png, webp) are allowed!'));
+    }
+  }
+});
+
+// Worker: add portfolio item
+router.post(
+  '/me/portfolio',
+  requireAuth('worker'),
+  uploadPortfolio.single('photo'),
+  async (req, res, next) => {
+    try {
+      if (!req.file) {
+        throw new AppError('No photo file uploaded', 400);
+      }
+      const { title } = req.body;
+      if (!title || typeof title !== 'string' || title.trim().length === 0) {
+        throw new AppError('Portfolio project title is required', 400);
+      }
+
+      const photoUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+      const portfolioItem = await workerService.addPortfolioItem(req.user!.id, title.trim(), photoUrl);
+
+      res.json({
+        success: true,
+        message: 'Portfolio item added successfully',
+        data: { portfolioItem }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Worker: delete portfolio item
+router.delete(
+  '/me/portfolio/:itemId',
+  requireAuth('worker'),
+  async (req, res, next) => {
+    try {
+      const result = await workerService.removePortfolioItem(req.user!.id, req.params.itemId);
+      res.json({
+        success: true,
+        message: 'Portfolio item deleted successfully',
+        data: result
       });
     } catch (error) {
       next(error);
