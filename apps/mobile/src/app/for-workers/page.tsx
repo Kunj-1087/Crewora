@@ -3,124 +3,162 @@
 import React from 'react';
 import Link from 'next/link';
 import { Button } from '@crewora/ui';
-import { CheckCircle, DollarSign, Smartphone, MapPin, ArrowLeft } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { CheckCircle, DollarSign, Smartphone, MapPin, Briefcase, UserCheck, ShieldCheck, ArrowRight } from 'lucide-react';
 
 const BENEFITS = [
-  { icon: CheckCircle, title: 'Steady Local Leads', description: 'New job requests from nearby customers land in your feed daily. No cold calling, no hunting.' },
-  { icon: DollarSign, title: 'Zero Platform Fees', description: 'The customer pays you directly. We never take a percentage — your rate is your rate.' },
-  { icon: Smartphone, title: 'Works From Your Phone', description: 'Set your availability with one tap. Get notified when a job matches your trade and location.' },
-  { icon: MapPin, title: 'Your City, Your Radius', description: 'Control exactly how far you travel. No commutes outside your zone.' },
+  { 
+    id: 'jobs',
+    title: 'Regular Job Opportunities', 
+    description: 'Jobs near your area, matched to your trade. We bring the work to you.',
+    icon: Briefcase,
+    color: 'text-blue-600 bg-blue-50'
+  },
+  { 
+    id: 'middlemen',
+    title: 'No Middlemen', 
+    description: 'Connect directly with clients, no commission cuts. Keep what you earn.',
+    icon: DollarSign,
+    color: 'text-emerald-600 bg-emerald-50'
+  },
+  { 
+    id: 'setup',
+    title: 'Simple Setup', 
+    description: 'Easy to join, no technical knowledge needed. Start within minutes.',
+    icon: UserCheck,
+    color: 'text-indigo-600 bg-indigo-50'
+  },
 ];
 
 const STEPS = [
-  { step: 1, title: 'Sign Up in 2 Minutes', description: 'Enter your name, trade skills, and city. No paperwork, no waiting.' },
-  { step: 2, title: 'Get Approved Fast', description: 'Our team reviews and activates your profile within 24 hours so you can start matching sooner.' },
-  { step: 3, title: 'Flip to Available & Earn', description: 'Toggle your status to Available and receive job invites from customers in your area instantly.' },
+  { step: 1, title: 'Sign up with your trade', description: 'Tell us what you do and where you work.' },
+  { step: 2, title: 'Complete your profile', description: 'Add your experience and verify your identity.' },
+  { step: 3, title: 'Start receiving requests', description: 'Get notified of local jobs that fit your skills.' },
 ];
 
 export default function ForWorkersPage() {
-  const router = useRouter();
-
   return (
-    <div className="flex-1 flex flex-col bg-slate-50 animate-fadeIn select-none">
+    <div className="flex-1 flex flex-col bg-white">
       
-      {/* Mini top bar */}
-      <div className="px-4 h-12 flex items-center bg-white border-b border-slate-100 shrink-0">
-        <button 
-          onClick={() => router.push('/')}
-          className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800"
-        >
-          <ArrowLeft size={16} />
-          <span>Home</span>
-        </button>
-        <span className="ml-auto mr-auto font-extrabold text-slate-900 text-sm">Join Crewora Crew</span>
-        <div className="w-12"></div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto pb-10">
-        
-        {/* Hero Section */}
-        <div className="bg-gradient-to-br from-primary-950 via-primary-800 to-indigo-900 text-white px-6 py-8 rounded-b-[36px] shadow-sm text-left">
-          <h1 className="text-xl font-black leading-tight tracking-tight">
-            Tired of Platforms Taking a Cut? <br />
-            <span className="bg-gradient-to-r from-primary-200 to-white bg-clip-text text-transparent">
-              Keep 100% of What You Earn
-            </span>
-          </h1>
-          <p className="text-[11px] text-slate-300 mt-2 leading-relaxed max-w-xs">
-            Join the network built for blue-collar pros. Get matched with local customers who need your exact skills — and keep every rupee you charge.
-          </p>
-          <div className="mt-4">
-            <Link href="/worker/register">
-              <Button size="md" variant="secondary" className="w-full bg-white text-primary-600 hover:bg-slate-50 font-extrabold">
-                Create Your Free Profile
-              </Button>
-            </Link>
+      {/* ─── Hero Section (Mockup 3 Style) ────────────────────────────────────── */}
+      <section className="bg-white py-16 px-6 sm:px-12 lg:px-24 border-b border-slate-100 text-center lg:text-left">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          
+          {/* Left Text */}
+          <div className="lg:col-span-6 space-y-6">
+            <h1 className="text-4xl sm:text-5xl font-extrabold text-[#0b1528] tracking-tight leading-tight">
+              {"Looking for Work? Join Crewora's Crew Network"}
+            </h1>
+            <p className="text-base sm:text-lg text-slate-500 max-w-xl leading-relaxed">
+              Get connected to real, local jobs — regularly. No complex apps, no upfront cost. Just reliable work opportunities.
+            </p>
+            
+            <div className="pt-2">
+              <Link href="/worker/register">
+                <Button size="lg" className="px-8 py-4 bg-accent-600 hover:bg-accent-700 text-white font-extrabold text-sm rounded-lg shadow-md hover:shadow-lg transition-all active:scale-98">
+                  Join as Crew
+                </Button>
+              </Link>
+            </div>
           </div>
+
+          {/* Right Image */}
+          <div className="lg:col-span-6">
+            <div className="rounded-2xl overflow-hidden shadow-2xl border border-slate-150 bg-slate-500">
+              <img 
+                src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&q=80&w=800" 
+                alt="Construction professional on site" 
+                className="w-full h-auto object-cover max-h-[420px]"
+              />
+            </div>
+          </div>
+
         </div>
+      </section>
 
-        {/* Benefits Grid */}
-        <div className="px-5 pt-8 space-y-4">
-          <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">
-            Why Join Us?
-          </h2>
-
-          <div className="grid grid-cols-1 gap-3">
-            {BENEFITS.map((benefit) => {
-              const Icon = benefit.icon;
+      {/* ─── Benefits Section (Mockup 3 Style) ────────────────────────────────── */}
+      <section className="bg-slate-50/50 py-20 px-6 sm:px-12 lg:px-24 border-b border-slate-100">
+        <div className="max-w-7xl mx-auto space-y-12">
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {BENEFITS.map((b) => {
+              const Icon = b.icon;
               return (
-                <div key={benefit.title} className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm flex items-start gap-4">
-                  <div className="w-9 h-9 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
-                    <Icon size={16} className="stroke-[2.5]" />
-                  </div>
-                  <div className="text-left">
-                    <h3 className="font-bold text-slate-900 text-xs">{benefit.title}</h3>
-                    <p className="text-[10px] text-slate-400 mt-0.5 leading-relaxed">{benefit.description}</p>
+                <div 
+                  key={b.id} 
+                  className="bg-white rounded-2xl border border-slate-200/60 p-8 flex flex-col justify-between text-left space-y-6 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="space-y-4">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${b.color}`}>
+                      <Icon size={20} className="stroke-[2.5]" />
+                    </div>
+                    <h3 className="text-base font-extrabold text-[#0b1528]">{b.title}</h3>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      {b.description}
+                    </p>
                   </div>
                 </div>
               );
             })}
           </div>
+
         </div>
+      </section>
 
-        {/* Timeline Steps */}
-        <div className="px-5 pt-8 space-y-4">
-          <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">
-            How It Works
-          </h2>
-
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4">
-            {STEPS.map((step) => (
-              <div key={step.step} className="flex gap-3">
-                <div className="w-6 h-6 rounded-full bg-primary-50 text-primary-600 font-bold text-xs flex items-center justify-center shrink-0">
-                  {step.step}
-                </div>
-                <div className="text-left">
-                  <h4 className="text-xs font-bold text-slate-900">{step.title}</h4>
-                  <p className="text-[10px] text-slate-400 mt-0.5 leading-relaxed">{step.description}</p>
-                </div>
-              </div>
-            ))}
+      {/* ─── Getting Started Steps (Mockup 3 Style) ────────────────────────────── */}
+      <section className="bg-white py-20 px-6 sm:px-12 lg:px-24 border-b border-slate-100">
+        <div className="max-w-7xl mx-auto space-y-16 text-center">
+          
+          <div className="space-y-2">
+            <h2 className="text-3xl font-extrabold text-[#0b1528] tracking-tight">Getting started is easy</h2>
+            <p className="text-xs text-slate-500">Three steps to your next job lead</p>
           </div>
-        </div>
 
-        {/* CTA */}
-        <div className="px-5 pt-8 select-none">
-          <div className="bg-gradient-to-tr from-primary-900 to-indigo-900 text-white rounded-2xl p-5 text-center shadow-md space-y-3">
-            <h3 className="text-sm font-extrabold">Start Receiving Jobs Today</h3>
-            <p className="text-[10px] text-slate-300 leading-relaxed">
-              Sign up free. No commitments. No fees. Start getting matched with paying customers tomorrow.
+          <div className="relative">
+            {/* Center connector line for desktop */}
+            <div className="hidden md:block absolute top-6 left-16 right-16 h-0.5 bg-slate-200 -z-10"></div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative z-10">
+              {STEPS.map((step) => (
+                <div key={step.step} className="flex flex-col items-center space-y-4 max-w-xs mx-auto">
+                  <div className="w-12 h-12 rounded-full bg-accent-600 text-white font-extrabold text-base flex items-center justify-center shadow-md">
+                    {step.step}
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-extrabold text-[#0b1528]">{step.title}</h4>
+                    <p className="text-xs text-slate-500 leading-relaxed">{step.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* ─── Ready to find your next lead? CTA Banner ─────────────────────────── */}
+      <section className="px-6 sm:px-12 lg:px-24 py-20 bg-slate-50/30 select-none">
+        <div className="max-w-6xl mx-auto bg-accent-600 text-white rounded-3xl p-10 md:p-14 text-center relative overflow-hidden shadow-xl border border-accent-500">
+          <div className="absolute top-0 right-0 w-36 h-36 bg-white/10 rounded-full blur-2xl"></div>
+          <div className="absolute bottom-0 left-0 w-36 h-36 bg-white/10 rounded-full blur-2xl"></div>
+          
+          <div className="relative space-y-6 max-w-2xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-black tracking-tight leading-tight">
+              Ready to find your next lead?
+            </h2>
+            <p className="text-sm text-blue-100 leading-relaxed">
+              Join thousands of verified specialists earning more with Crewora.
             </p>
-            <Link href="/worker/register">
-              <Button size="md" variant="secondary" className="w-full bg-white text-primary-600">
-                Get Started Free
-              </Button>
-            </Link>
+            
+            <div className="pt-2">
+              <Link href="/worker/register">
+                <Button size="lg" className="w-full sm:w-auto bg-white hover:bg-slate-50 text-accent-700 font-extrabold text-sm px-8 py-4 rounded-xl shadow-md border-none outline-none">
+                  Join as Crew Now
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
-
-      </div>
+      </section>
 
     </div>
   );
