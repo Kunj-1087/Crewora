@@ -185,7 +185,7 @@ export default function JobDetailsClient() {
   return (
     <div className="flex-1 flex flex-col bg-slate-50 animate-fadeIn">
       {/* Top Header */}
-      <div className="px-4 h-12 flex items-center bg-white border-b border-slate-100 shrink-0 select-none">
+      <div className="px-4 h-12 flex items-center bg-white border-b border-slate-200/80 shrink-0 select-none">
         <button 
           onClick={() => router.push('/customer/dashboard')}
           className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800"
@@ -200,7 +200,7 @@ export default function JobDetailsClient() {
       <div className="flex-1 overflow-y-auto p-5 space-y-5 pb-10">
         
         {/* Job Core Card */}
-        <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4">
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-4">
           <div className="flex justify-between items-start">
             <div className="space-y-1">
               <h2 className="text-base font-extrabold text-slate-900">{job.title}</h2>
@@ -216,7 +216,7 @@ export default function JobDetailsClient() {
             <Badge variant={getStatusVariant(job.status)}>{job.status}</Badge>
           </div>
 
-          <div className="text-xs text-slate-600 leading-relaxed whitespace-pre-line bg-slate-50 rounded-xl p-3 border border-slate-100">
+          <div className="text-xs text-slate-600 leading-relaxed whitespace-pre-line bg-slate-50 rounded-xl p-3 border border-slate-200/80">
             {job.description}
           </div>
 
@@ -248,8 +248,8 @@ export default function JobDetailsClient() {
 
         {/* Assigned Worker Info (if matched or completed) */}
         {(job.status === 'matched' || job.status === 'in_progress' || job.status === 'completed') && assignedWorker && (
-          <div className="bg-white rounded-2xl border-2 border-emerald-500/20 p-5 shadow-sm space-y-4 animate-fadeIn">
-            <div className="flex items-center gap-2 text-emerald-700 font-black text-xs uppercase tracking-wider select-none">
+          <div className="bg-white rounded-2xl border border-accent/20 p-5 shadow-sm space-y-4 animate-fadeIn">
+            <div className="flex items-center gap-2 text-accent-700 font-black text-xs uppercase tracking-wider select-none">
               <ShieldCheck size={16} />
               <span>{job.status === 'completed' ? 'Contractor Details' : 'Assigned Worker Found'}</span>
             </div>
@@ -279,7 +279,7 @@ export default function JobDetailsClient() {
             <div className="pt-2">
               <a 
                 href={`tel:${assignedWorker.phone}`}
-                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-sm shadow-md transition-colors"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-accent hover:bg-accent-600 active:bg-accent-700 text-white font-bold text-sm shadow-md transition-colors"
               >
                 <Phone size={16} />
                 <span>Call {assignedWorker.name}</span>
@@ -293,14 +293,14 @@ export default function JobDetailsClient() {
 
         {/* Rating/Review Section if completed */}
         {job.status === 'completed' && assignedWorker && (
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-4 animate-fadeIn">
             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1 select-none">
               Rate Your Experience
             </h3>
             
             {job.review ? (
               // If already reviewed, display the review details
-              <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 space-y-2 animate-fadeIn text-left">
+              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 space-y-2 animate-fadeIn text-left">
                 <div className="flex justify-between items-center select-none">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Submitted Review</span>
                   <div className="flex gap-0.5">
@@ -325,7 +325,7 @@ export default function JobDetailsClient() {
             ) : (
               // Interactive rating submission form
               <div className="space-y-4 text-left animate-fadeIn">
-                <div className="flex flex-col items-center gap-2 select-none py-2 bg-slate-50 rounded-2xl border border-slate-100/50">
+                <div className="flex flex-col items-center gap-2 select-none py-2 bg-slate-50 rounded-2xl border border-slate-200/80">
                   <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Tap to Rate</span>
                   <div className="flex gap-2">
                     {Array.from({ length: 5 }).map((_, i) => {
@@ -367,7 +367,7 @@ export default function JobDetailsClient() {
                     onChange={(e) => setComment(e.target.value)}
                     rows={3}
                     maxLength={500}
-                    className="w-full text-xs p-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white outline-none focus:border-[#10b981] transition-all text-slate-800"
+                    className="w-full text-xs p-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white outline-none focus:border-accent transition-all text-slate-800"
                   />
                   <div className="flex justify-between text-[9px] text-slate-400 select-none px-1">
                     <span>Max 500 characters</span>
@@ -380,7 +380,7 @@ export default function JobDetailsClient() {
                   isLoading={submittingReview}
                   disabled={rating === 0}
                   variant="primary"
-                  className="w-full py-3 bg-[#10b981] hover:bg-[#059669] text-white text-xs font-bold rounded-xl"
+                  className="w-full py-3 bg-accent hover:bg-accent-600 text-white text-xs font-bold rounded-xl"
                 >
                   Submit Review
                 </Button>
@@ -397,27 +397,27 @@ export default function JobDetailsClient() {
             </h3>
 
             {matches.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center select-none relative overflow-hidden flex flex-col items-center">
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-8 text-center select-none relative overflow-hidden flex flex-col items-center">
                 {/* Pulsing Radar Rings */}
                 <div className="relative flex items-center justify-center h-20 w-20 mb-4">
-                  <span className="animate-ping absolute inline-flex h-16 w-16 rounded-full bg-primary-400/20 opacity-75"></span>
-                  <span className="animate-pulse absolute inline-flex h-12 w-12 rounded-full bg-primary-500/10"></span>
-                  <div className="w-12 h-12 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center z-10 shadow-inner">
+                  <span className="animate-ping absolute inline-flex h-16 w-16 rounded-full bg-accent-400/20 opacity-75"></span>
+                  <span className="animate-pulse absolute inline-flex h-12 w-12 rounded-full bg-accent-500/10"></span>
+                  <div className="w-12 h-12 bg-accent-100 text-accent-600 rounded-full flex items-center justify-center z-10 shadow-inner">
                     <HardHat size={24} className="animate-bounce" />
                   </div>
                 </div>
 
                 <h4 className="font-extrabold text-slate-900 text-sm tracking-tight">Searching for Active Workers...</h4>
                 <p className="text-[11px] text-slate-400 mt-1.5 max-w-xs leading-relaxed">
-                  We are scanning your service area to match this request with nearby verified <span className="text-primary-600 font-bold uppercase">{job.tradeCategory}s</span>. Updates will appear here instantly.
+                  We are scanning your service area to match this request with nearby verified <span className="text-accent-600 font-bold uppercase">{job.tradeCategory}s</span>. Updates will appear here instantly.
                 </p>
               </div>
             ) : (
               <div className="space-y-3">
                 {matches.map((match) => (
-                  <div key={match.id} className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm flex items-center justify-between">
+                  <div key={match.id} className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-sm flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 overflow-hidden shrink-0 border border-slate-100">
+                      <div className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 overflow-hidden shrink-0 border border-slate-200/80">
                         {match.worker?.profilePhoto ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={match.worker.profilePhoto} alt={match.worker.name} className="w-full h-full object-cover" />
@@ -457,7 +457,7 @@ export default function JobDetailsClient() {
       {/* Cancellation Modal Overlay */}
       {showCancelModal && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center md:items-center p-0 md:p-6 animate-fadeIn">
-          <div className="bg-white w-full md:max-w-sm rounded-t-3xl md:rounded-2xl p-6 space-y-4 border border-slate-100 shadow-xl max-h-[80vh] overflow-y-auto">
+          <div className="bg-white w-full md:max-w-sm rounded-t-3xl md:rounded-2xl p-6 space-y-4 border border-slate-200/80 shadow-xl max-h-[80vh] overflow-y-auto">
             <h3 className="text-base font-extrabold text-slate-900 text-center md:text-left select-none">
               Cancel Job Request
             </h3>

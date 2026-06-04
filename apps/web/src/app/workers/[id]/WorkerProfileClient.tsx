@@ -173,7 +173,7 @@ export default function WorkerProfileClient() {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-[#F8FAFC] min-h-screen">
-        <div className="w-8 h-8 border-4 border-[#10b981] border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -223,7 +223,7 @@ export default function WorkerProfileClient() {
     <div className="flex-1 flex flex-col bg-[#F8FAFC] relative animate-fadeIn select-none pb-28">
       
       {/* ─── Back Button & Header ────────────────────────────────────────────── */}
-      <div className="sticky top-0 bg-white border-b border-slate-100 h-14 px-4 flex items-center gap-3 z-30 shadow-sm shrink-0">
+      <div className="sticky top-0 bg-white border-b border-slate-200/80 h-14 px-4 flex items-center gap-3 z-30 shadow-sm shrink-0">
         <button onClick={() => router.back()} className="text-slate-800 hover:text-navy p-1 transition-colors">
           <ChevronLeft size={20} className="stroke-[2.5]" />
         </button>
@@ -303,14 +303,14 @@ export default function WorkerProfileClient() {
         </div>
 
         {/* About Me Card */}
-        <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-2.5 text-left">
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-2.5 text-left">
           <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">About Me</h3>
           <p className="text-xs text-slate-600 leading-relaxed">
             {worker.bio}
           </p>
           
           {displayAwards && displayAwards.length > 0 && (
-            <div className="pt-3 border-t border-slate-50 space-y-1.5">
+            <div className="pt-3 border-t border-slate-100 space-y-1.5">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Certifications & Awards</span>
               <div className="flex flex-col gap-1.5">
                 {displayAwards.map((award: string, i: number) => (
@@ -325,7 +325,7 @@ export default function WorkerProfileClient() {
         </div>
 
         {/* Portfolio Media Grid */}
-        <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-3 text-left">
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-3 text-left">
           <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
             <ImageIcon size={13} />
             Portfolio Projects
@@ -334,7 +334,7 @@ export default function WorkerProfileClient() {
           <div className="grid grid-cols-3 gap-2">
             {displayPortfolio.map((port: any, idx: number) => (
               <div key={idx} className="space-y-1 cursor-pointer group">
-                <div className="h-20 w-full rounded-xl bg-slate-100 overflow-hidden relative border border-slate-100">
+                <div className="h-20 w-full rounded-xl bg-slate-100 overflow-hidden relative border border-slate-200/80">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img 
                     src={port.image} 
@@ -349,7 +349,7 @@ export default function WorkerProfileClient() {
         </div>
 
         {/* Verified Reviews Feed */}
-        <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-3.5 text-left">
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-3.5 text-left">
           <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
             <ThumbsUp size={13} />
             Verified Customer Reviews
@@ -385,7 +385,7 @@ export default function WorkerProfileClient() {
       </div>
 
       {/* ─── Bottom Floating Action Buttons Panel ────────────────────────────── */}
-      <div className="fixed bottom-0 left-0 right-0 md:absolute md:bottom-0 bg-white border-t border-slate-100 p-4 z-40 shadow-[0_-4px_24px_rgba(0,0,0,0.04)] select-none shrink-0 flex gap-3">
+      <div className="fixed bottom-0 left-0 right-0 md:absolute md:bottom-0 bg-white border-t border-slate-200/80 p-4 z-40 shadow-[0_-4px_24px_rgba(0,0,0,0.04)] select-none shrink-0 flex gap-3">
         <button 
           onClick={() => router.push(`/inbox?chat=${worker.id}`)}
           className="flex-1 border border-slate-200 hover:border-slate-350 hover:bg-slate-50 text-[#0b1528] font-extrabold text-xs py-3.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors"
@@ -395,7 +395,7 @@ export default function WorkerProfileClient() {
         </button>
         <button 
           onClick={() => router.push(`/workers/${worker.id}/book`)}
-          className="flex-1 bg-[#10b981] hover:bg-[#059669] text-white font-extrabold text-xs py-3.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+          className="flex-1 bg-accent hover:bg-accent-600 text-white font-extrabold text-xs py-3.5 rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-sm"
         >
           <Calendar size={14} />
           BOOK NOW
