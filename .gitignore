@@ -7,5 +7,4 @@ out/
 .env.local
 *.log
 data/
-android/
 uploads/

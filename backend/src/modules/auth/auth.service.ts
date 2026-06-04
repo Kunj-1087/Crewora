@@ -61,11 +61,10 @@ async function verifyAndConsumeOtp(phone: string, code: string, userType: 'custo
       phone,
       code,
       userType,
-      expiresAt: { gt: new Date() },
     },
   });
 
-  if (!otpRecord) {
+  if (!otpRecord || otpRecord.expiresAt < new Date()) {
     throw new AppError('Invalid or expired OTP', 400, 'INVALID_OTP');
   }
 
