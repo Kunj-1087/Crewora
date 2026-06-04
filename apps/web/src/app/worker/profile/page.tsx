@@ -60,7 +60,7 @@ export default function WorkerProfilePage() {
   const [portfolioUploading, setPortfolioUploading] = useState(false);
   const portfolioFileInputRef = useRef<HTMLInputElement>(null);
 
-  const { register, handleSubmit, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, setValue, reset, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       city: workerUser?.city || '',
@@ -70,19 +70,47 @@ export default function WorkerProfilePage() {
     }
   });
 
+  const [isFetched, setIsFetched] = useState(false);
+
   useEffect(() => {
     if (isInitialized) {
       if (!user) {
         router.push('/login');
       } else if (user.role !== 'worker') {
         router.push('/customer/profile');
-      } else {
+      } else if (!isFetched) {
         setSelectedTrades(workerUser?.tradeCategories || []);
         setCertifications((workerUser as any)?.certifications || []);
         setPortfolioItems((workerUser as any)?.portfolioItems || []);
       }
     }
-  }, [user, isInitialized, router, workerUser]);
+  }, [user, isInitialized, router, workerUser, isFetched]);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const { data } = await apiClient.get('/workers/me');
+        const worker = data.data.worker;
+        updateUser(worker);
+        reset({
+          city: worker.city || '',
+          experienceYears: worker.experienceYears || 0,
+          hourlyRate: worker.hourlyRate || 0,
+          bio: worker.bio || '',
+        });
+        setSelectedTrades(worker.tradeCategories || []);
+        setCertifications(worker.certifications || []);
+        setPortfolioItems(worker.portfolioItems || []);
+        setIsFetched(true);
+      } catch (err) {
+        console.error('Failed to fetch fresh worker profile:', err);
+      }
+    };
+
+    if (isInitialized && user && user.role === 'worker' && !isFetched) {
+      fetchProfile();
+    }
+  }, [isInitialized, user, isFetched, reset, updateUser]);
 
   const toggleTradeCategory = (tradeId: string) => {
     setSelectedTrades(prev => {

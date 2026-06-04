@@ -59,7 +59,7 @@ export default function WorkerDashboard() {
     };
   }, [feed]);
 
-  // Listen for real-time invites via Socket.io
+  // Listen for real-time invites and updates via Socket.io
   useEffect(() => {
     if (!socket || !user || user.role !== 'worker') return;
 
@@ -87,9 +87,15 @@ export default function WorkerDashboard() {
       }
     };
 
+    const handleJobCancelled = (data: any) => {
+      setFeed((prev) => prev.filter((match) => match.jobId?.id !== data.jobId));
+    };
+
     socket.on('new_job_invite', handleNewInvite);
+    socket.on('job_cancelled', handleJobCancelled);
     return () => {
       socket.off('new_job_invite', handleNewInvite);
+      socket.off('job_cancelled', handleJobCancelled);
     };
   }, [socket, user, activeTab]);
 
@@ -244,10 +250,20 @@ export default function WorkerDashboard() {
             </div>
           </div>
           
-          {/* Quick status pill display */}
-          <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase border tracking-wider ${currentStatusClasses.pill}`}>
-            <span className={`w-2 h-2 rounded-full ${currentStatusClasses.bg} animate-pulse`} />
-            <span>{user.availability === 'unavailable' ? 'Offline' : user.availability.replace(/_/g, ' ')}</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.push('/worker/profile')}
+              className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-extrabold text-xs px-3 py-1.5 rounded-xl flex items-center gap-1 shadow-sm active:scale-95 transition-all"
+            >
+              <User size={12} className="text-slate-550" />
+              <span>Profile</span>
+            </button>
+
+            {/* Quick status pill display */}
+            <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase border tracking-wider ${currentStatusClasses.pill}`}>
+              <span className={`w-2 h-2 rounded-full ${currentStatusClasses.bg} animate-pulse`} />
+              <span>{user.availability === 'unavailable' ? 'Offline' : user.availability.replace(/_/g, ' ')}</span>
+            </div>
           </div>
         </div>
 

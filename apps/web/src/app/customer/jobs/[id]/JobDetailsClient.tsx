@@ -56,7 +56,7 @@ export default function JobDetailsClient() {
     }
   }, [jobId, user]);
 
-  // Listen for job acceptance via Socket.io in real-time
+  // Listen for real-time events via Socket.io
   useEffect(() => {
     if (!socket || !user || user.role !== 'customer' || !jobId) return;
 
@@ -66,9 +66,17 @@ export default function JobDetailsClient() {
       }
     };
 
+    const handleMatchesUpdated = (data: any) => {
+      if (data.jobId === jobId) {
+        fetchData();
+      }
+    };
+
     socket.on('job_match_accepted', handleJobAccepted);
+    socket.on('job_matches_updated', handleMatchesUpdated);
     return () => {
       socket.off('job_match_accepted', handleJobAccepted);
+      socket.off('job_matches_updated', handleMatchesUpdated);
     };
   }, [socket, user, jobId, fetchData]);
 
@@ -389,13 +397,19 @@ export default function JobDetailsClient() {
             </h3>
 
             {matches.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-slate-100 p-6 text-center select-none">
-                <div className="w-10 h-10 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <HardHat size={20} />
+              <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center select-none relative overflow-hidden flex flex-col items-center">
+                {/* Pulsing Radar Rings */}
+                <div className="relative flex items-center justify-center h-20 w-20 mb-4">
+                  <span className="animate-ping absolute inline-flex h-16 w-16 rounded-full bg-primary-400/20 opacity-75"></span>
+                  <span className="animate-pulse absolute inline-flex h-12 w-12 rounded-full bg-primary-500/10"></span>
+                  <div className="w-12 h-12 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center z-10 shadow-inner">
+                    <HardHat size={24} className="animate-bounce" />
+                  </div>
                 </div>
-                <h4 className="font-bold text-slate-800 text-xs">Finding matches...</h4>
-                <p className="text-[10px] text-slate-400 mt-1">
-                  We are notifying verified tradespeople nearby. They should respond shortly.
+
+                <h4 className="font-extrabold text-slate-900 text-sm tracking-tight">Searching for Active Workers...</h4>
+                <p className="text-[11px] text-slate-400 mt-1.5 max-w-xs leading-relaxed">
+                  We are scanning your service area to match this request with nearby verified <span className="text-primary-600 font-bold uppercase">{job.tradeCategory}s</span>. Updates will appear here instantly.
                 </p>
               </div>
             ) : (

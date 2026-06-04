@@ -133,50 +133,63 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     // ─── Capacitor Native Push Notifications Setup ──────────────────────────────────
     if (Capacitor.isNativePlatform()) {
-      PushNotifications.requestPermissions().then((result) => {
-        if (result.receive === 'granted') {
-          PushNotifications.register();
-        }
-      });
-
-      PushNotifications.addListener('registration', async (token) => {
+      const setupPush = async () => {
         try {
-          await apiClient.post('/auth/device-token', { token: token.value });
+          PushNotifications.addListener('registration', async (token) => {
+            try {
+              await apiClient.post('/auth/device-token', { token: token.value });
+            } catch (err) {
+              console.error('Failed to register device token with backend', err);
+            }
+          });
+
+          PushNotifications.addListener('registrationError', (error) => {
+            console.error('Error on push notification registration:', error);
+          });
+
+          PushNotifications.addListener('pushNotificationReceived', (notification) => {
+            playNotificationChime();
+            setToast({
+              id: notification.id,
+              type: notification.data?.type === 'new_job_invite' ? 'new_job_invite' : 'job_match_accepted',
+              title: notification.title || 'Notification Received',
+              message: notification.body || '',
+              payload: notification.data || {},
+            });
+          });
+
+          PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+            const data = action.notification.data;
+            if (data?.type === 'new_job_invite' && data?.matchId) {
+              router.push('/worker/dashboard');
+            } else if (data?.type === 'job_match_accepted' && data?.jobId) {
+              router.push(`/customer/jobs/${data.jobId}`);
+            }
+          });
+
+          const permission = await PushNotifications.requestPermissions();
+          if (permission.receive === 'granted') {
+            await PushNotifications.register();
+          } else {
+            console.warn('Push notification permission denied by user.');
+          }
         } catch (err) {
-          console.error('Failed to register device token with backend', err);
+          console.error('Error during push notification initialization:', err);
         }
-      });
+      };
 
-      PushNotifications.addListener('registrationError', (error) => {
-        console.error('Error on push notification registration:', error);
-      });
-
-      PushNotifications.addListener('pushNotificationReceived', (notification) => {
-        playNotificationChime();
-        setToast({
-          id: notification.id,
-          type: notification.data?.type === 'new_job_invite' ? 'new_job_invite' : 'job_match_accepted',
-          title: notification.title || 'Notification Received',
-          message: notification.body || '',
-          payload: notification.data || {},
-        });
-      });
-
-      PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-        const data = action.notification.data;
-        if (data?.type === 'new_job_invite' && data?.matchId) {
-          router.push('/worker/dashboard');
-        } else if (data?.type === 'job_match_accepted' && data?.jobId) {
-          router.push(`/customer/jobs/${data.jobId}`);
-        }
-      });
+      setupPush();
     }
 
     return () => {
       s.disconnect();
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
       if (Capacitor.isNativePlatform()) {
-        PushNotifications.removeAllListeners();
+        try {
+          PushNotifications.removeAllListeners();
+        } catch (err) {
+          console.error('Failed to remove push notifications listeners:', err);
+        }
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

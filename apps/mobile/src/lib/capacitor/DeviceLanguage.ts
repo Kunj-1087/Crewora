@@ -6,6 +6,9 @@ export interface DeviceLanguagePlugin {
     country: string;
     languageTag: string;
   }>;
+  checkPushConfig(): Promise<{
+    isDummy: boolean;
+  }>;
 }
 
 export const DeviceLanguage = registerPlugin<DeviceLanguagePlugin>('DeviceLanguage');

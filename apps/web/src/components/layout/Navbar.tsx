@@ -139,6 +139,13 @@ export function Navbar() {
                 <Link href={dashboardHref} className="block py-2.5 text-navy font-medium" onClick={() => setMobileOpen(false)}>
                   Dashboard
                 </Link>
+                <Link
+                  href={user.role === 'worker' ? '/worker/profile' : '/customer/profile'}
+                  className="block py-2.5 text-navy font-medium"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  Profile
+                </Link>
                 <button onClick={() => { handleLogout(); setMobileOpen(false); }} className="block py-2.5 text-error font-medium w-full text-left">
                   Sign Out
                 </button>

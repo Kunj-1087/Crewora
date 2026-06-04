@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/authStore';
 import apiClient from '@crewora/api-client';
 import en from '@/constants/translations/en.json';
 import gu from '@/constants/translations/gu.json';
+import { DeviceLanguage } from '@/lib/capacitor/DeviceLanguage';
 
 const translations: Record<'en' | 'gu', any> = { en, gu };
 
@@ -76,7 +77,6 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       // 3. Detect Device Language (Capacitor native check for Android)
       let detected: LanguageType = 'en';
       try {
-        const { DeviceLanguage } = await import('@/lib/capacitor/DeviceLanguage');
         const res = await DeviceLanguage.getLanguage();
         if (res.languageTag.startsWith('gu') || res.language.startsWith('gu')) {
           detected = 'gu';

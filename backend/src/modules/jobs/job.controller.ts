@@ -26,7 +26,8 @@ export async function getJobById(req: Request, res: Response, next: NextFunction
 
 export async function updateJob(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const job = await jobService.updateJob(req.params.id, req.user!.id, req.body);
+    const io = req.app.get('io');
+    const job = await jobService.updateJob(req.params.id, req.user!.id, req.body, io);
     res.json({ success: true, message: 'Job updated', data: { job } });
   } catch (error) { next(error); }
 }

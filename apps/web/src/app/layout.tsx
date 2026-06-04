@@ -4,8 +4,7 @@ import '../styles/globals.css';
 import { AuthProvider } from '@/lib/auth/AuthProvider';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { SocketProvider } from '@/contexts/SocketContext';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
+import { LayoutWrapper } from '@/components/layout/LayoutWrapper';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -33,13 +32,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           <LanguageProvider>
             <SocketProvider>
-              <div className="min-h-screen flex flex-col bg-slate-50">
-                <Navbar />
-                <main className="flex-1 flex flex-col">
-                  {children}
-                </main>
-                <Footer />
-              </div>
+              <LayoutWrapper>
+                {children}
+              </LayoutWrapper>
             </SocketProvider>
           </LanguageProvider>
         </AuthProvider>

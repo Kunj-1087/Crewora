@@ -115,10 +115,11 @@ export default function CreateJobPage() {
           : undefined,
       };
 
-      await apiClient.post('/jobs', payload);
+      const { data: resData } = await apiClient.post('/jobs', payload);
+      const jobId = resData.data.job.id;
       setSuccess(true);
       setTimeout(() => {
-        router.push('/customer/dashboard');
+        router.push(`/customer/jobs/${jobId}`);
       }, 1500);
     } catch (err: any) {
       console.error('Failed to post job:', err);

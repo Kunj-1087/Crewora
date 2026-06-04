@@ -6,6 +6,7 @@ import { prisma } from '../../lib/prisma';
 import { AppError } from '../../utils/AppError';
 import { assertOwnership } from '../../utils/ownershipCheck';
 import { z } from 'zod';
+import { matchOpenJobsForWorker } from '../jobs/job.service';
 
 export const updateWorkerProfileSchema = z.object({
   bio: z.string().max(500).optional(),
@@ -45,6 +46,21 @@ export async function updateWorkerProfile(
     data: updates,
   });
   if (!worker) throw new AppError('Worker not found', 404);
+
+  // Trigger matching for open jobs asynchronously if relevant profile fields are updated
+  if (
+    updates.latitude !== undefined ||
+    updates.longitude !== undefined ||
+    updates.tradeCategories !== undefined ||
+    updates.availability !== undefined ||
+    updates.city !== undefined
+  ) {
+    matchOpenJobsForWorker(worker.id).catch((err) => {
+      // Log errors but don't block profile update response
+      console.error('Failed to match open jobs for worker on update', err);
+    });
+  }
+
   return worker;
 }
 

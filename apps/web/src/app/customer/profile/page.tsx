@@ -38,7 +38,7 @@ export default function CustomerProfilePage() {
 
   const customerUser = user?.role === 'customer' ? user : null;
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormData>({
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       name: customerUser?.name || '',
@@ -46,6 +46,8 @@ export default function CustomerProfilePage() {
       address: customerUser?.address || '',
     }
   });
+
+  const [isFetched, setIsFetched] = useState(false);
 
   useEffect(() => {
     if (isInitialized) {
@@ -56,6 +58,28 @@ export default function CustomerProfilePage() {
       }
     }
   }, [user, isInitialized, router]);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const { data } = await apiClient.get('/customers/me');
+        const customer = data.data.customer;
+        updateUser(customer);
+        reset({
+          name: customer.name || '',
+          phone: customer.phone || '',
+          address: customer.address || '',
+        });
+        setIsFetched(true);
+      } catch (err) {
+        console.error('Failed to fetch fresh customer profile:', err);
+      }
+    };
+
+    if (isInitialized && user && user.role === 'customer' && !isFetched) {
+      fetchProfile();
+    }
+  }, [isInitialized, user, isFetched, reset, updateUser]);
 
   const onSubmit = async (data: FormData) => {
     setApiError(null);

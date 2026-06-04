@@ -9,6 +9,7 @@ import { prisma } from '../../lib/prisma';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../utils/jwt';
 import { AppError } from '../../utils/AppError';
 import { sendOtpSms } from '../../utils/sms';
+import { matchOpenJobsForWorker } from '../jobs/job.service';
 
 const OTP_EXPIRY_MINUTES = 5;
 
@@ -246,6 +247,12 @@ export async function registerWorker(data: {
   await prisma.worker.update({
     where: { id: worker.id },
     data: { refreshTokenHash },
+  });
+
+  // Trigger matching for open jobs asynchronously
+  matchOpenJobsForWorker(worker.id).catch((err) => {
+    // Log error but don't block registration
+    console.error('Failed to match open jobs for worker on register', err);
   });
 
   return { worker, accessToken, refreshToken };

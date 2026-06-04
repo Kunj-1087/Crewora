@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, CheckCircle2 } from 'lucide-react';
+import { Plus, CheckCircle2, User } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useSocket } from '@/contexts/SocketContext';
 import apiClient from '@crewora/api-client';
@@ -119,13 +119,22 @@ export default function CustomerDashboard() {
           <h1 className="text-xl font-extrabold text-[#0b1528] tracking-tight">Hirer Dashboard</h1>
           <p className="text-xs text-slate-500 mt-0.5">Manage your postings and contracts</p>
         </div>
-        <button
-          onClick={() => router.push('/customer/jobs/create')}
-          className="bg-accent-600 hover:bg-accent-700 text-white font-extrabold text-xs px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
-        >
-          <Plus size={14} className="stroke-[2.5]" />
-          Post Job
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => router.push('/customer/profile')}
+            className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-750 font-extrabold text-xs px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+          >
+            <User size={14} className="text-slate-550" />
+            <span>Profile</span>
+          </button>
+          <button
+            onClick={() => router.push('/customer/jobs/create')}
+            className="bg-accent-600 hover:bg-accent-700 text-white font-extrabold text-xs px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+          >
+            <Plus size={14} className="stroke-[2.5]" />
+            <span>Post Job</span>
+          </button>
+        </div>
       </div>
 
       <div className="px-5 py-5 space-y-6">

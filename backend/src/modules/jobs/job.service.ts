@@ -144,7 +144,8 @@ export async function getJobById(jobId: string, requestingUserId: string, userTy
 export async function updateJob(
   jobId: string,
   customerId: string,
-  updates: { title?: string; description?: string; scheduledAt?: string; status?: string; cancellationReason?: string }
+  updates: { title?: string; description?: string; scheduledAt?: string; status?: string; cancellationReason?: string },
+  io?: any
 ) {
   const job = await prisma.job.findUnique({ where: { id: jobId } });
   if (!job) throw new AppError('Job not found', 404);
@@ -163,6 +164,27 @@ export async function updateJob(
     allowedUpdates.status = 'cancelled';
     allowedUpdates.cancelledAt = new Date();
     allowedUpdates.cancellationReason = updates.cancellationReason;
+
+    // Find all pending matches for this job
+    const pendingMatches = await prisma.match.findMany({
+      where: { jobId, status: 'pending' },
+    });
+
+    // Update pending matches to declined/cancelled
+    await prisma.match.updateMany({
+      where: { jobId, status: 'pending' },
+      data: { status: 'declined' },
+    });
+
+    // Emit event to all pending matched workers
+    if (io) {
+      for (const match of pendingMatches) {
+        io.to(match.workerId).emit('job_cancelled', {
+          jobId,
+          matchId: match.id,
+        });
+      }
+    }
   }
 
   const updated = await prisma.job.update({
@@ -303,6 +325,12 @@ export async function respondToMatch(
     },
   });
 
+  if (action === 'decline' && io && match.job.customerId) {
+    io.to(match.job.customerId).emit('job_matches_updated', {
+      jobId: match.jobId,
+    });
+  }
+
   if (action === 'accept') {
     const job = await prisma.job.update({
       where: { id: match.jobId },
@@ -360,7 +388,7 @@ export async function respondToMatch(
 
 // ─── Matching Algorithm ───────────────────────────────────────────────────────
 
-async function matchWorkersForJob(jobId: string, io?: any) {
+export async function matchWorkersForJob(jobId: string, io?: any) {
   const job = await prisma.job.findUnique({ where: { id: jobId } });
   if (!job) return;
 
@@ -500,6 +528,11 @@ async function matchWorkersForJob(jobId: string, io?: any) {
           }
         ).catch((err) => logger.error('Failed to send match push', { err }));
       }
+
+      // Notify customer that matches have been found/updated
+      io.to(job.customerId).emit('job_matches_updated', {
+        jobId: job.id,
+      });
     }
   } catch (err) {
     logger.error('Failed to create match documents', { jobId, err });
@@ -586,4 +619,27 @@ export async function completeJob(
   });
 
   return { job: updatedJob, review };
+}
+
+export async function matchOpenJobsForWorker(workerId: string) {
+  try {
+    const worker = await prisma.worker.findUnique({
+      where: { id: workerId },
+    });
+    if (!worker || !worker.isActive || worker.availability !== 'available') return;
+
+    // Find all open jobs that match the worker's tradeCategories
+    const matchingJobs = await prisma.job.findMany({
+      where: {
+        status: 'open',
+        tradeCategory: { in: worker.tradeCategories },
+      },
+    });
+
+    for (const job of matchingJobs) {
+      await matchWorkersForJob(job.id);
+    }
+  } catch (err) {
+    logger.error('Failed to match open jobs for worker', { workerId, err });
+  }
 }

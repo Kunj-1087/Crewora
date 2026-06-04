@@ -4,6 +4,8 @@ import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+    public static boolean isFirebaseDummy = false;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(DeviceLanguagePlugin.class);
@@ -14,6 +16,7 @@ public class MainActivity extends BridgeActivity {
             Class<?> firebaseAppClass = Class.forName("com.google.firebase.FirebaseApp");
             java.util.List<?> apps = (java.util.List<?>) firebaseAppClass.getMethod("getApps", android.content.Context.class).invoke(null, this);
             if (apps == null || apps.isEmpty()) {
+                isFirebaseDummy = true;
                 Class<?> firebaseOptionsBuilderClass = Class.forName("com.google.firebase.FirebaseOptions$Builder");
                 Object builder = firebaseOptionsBuilderClass.getConstructor().newInstance();
                 
@@ -28,6 +31,7 @@ public class MainActivity extends BridgeActivity {
             }
         } catch (Exception e) {
             // Safe fallback: Firebase library not present, or initialization failed
+            isFirebaseDummy = true;
         }
 
         super.onCreate(savedInstanceState);

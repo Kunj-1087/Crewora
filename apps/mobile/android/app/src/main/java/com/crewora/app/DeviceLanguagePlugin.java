@@ -26,4 +26,11 @@ public class DeviceLanguagePlugin extends Plugin {
         ret.put("languageTag", languageTag);
         call.resolve(ret);
     }
+
+    @PluginMethod
+    public void checkPushConfig(PluginCall call) {
+        JSObject ret = new JSObject();
+        ret.put("isDummy", MainActivity.isFirebaseDummy);
+        call.resolve(ret);
+    }
 }
