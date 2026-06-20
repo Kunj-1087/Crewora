@@ -110,9 +110,12 @@ apiClient.interceptors.response.use(
 
       try {
         const userType = tokenStore.getUserType();
-        const endpoint = userType === 'worker'
-          ? '/auth/worker/refresh'
-          : '/auth/customer/refresh';
+        const endpoint =
+          userType === 'worker'
+            ? '/auth/worker/refresh'
+            : userType === 'admin'
+            ? '/auth/admin/refresh'
+            : '/auth/customer/refresh';
 
         const { data } = await refreshClient.post(endpoint);
         const newToken = data.data.accessToken;

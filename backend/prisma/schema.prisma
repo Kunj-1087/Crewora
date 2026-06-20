@@ -7,15 +7,16 @@ generator client {
 }
 
 model Admin {
-  id           String    @id @default(uuid())
-  name         String
-  email        String    @unique
-  passwordHash String
-  role         String    @default("moderator") // "super_admin", "moderator", "support"
-  isActive     Boolean   @default(true)
-  lastLoginAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id               String    @id @default(uuid())
+  name             String
+  email            String    @unique
+  passwordHash     String
+  role             String    @default("moderator") // "super_admin", "moderator", "support"
+  isActive         Boolean   @default(true)
+  lastLoginAt      DateTime?
+  refreshTokenHash String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 }
 
 model Customer {

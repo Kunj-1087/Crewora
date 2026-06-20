@@ -8,3 +8,4 @@ out/
 *.log
 data/
 uploads/
+jdk21-portable/

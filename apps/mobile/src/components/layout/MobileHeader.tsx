@@ -7,12 +7,14 @@ import { Bell, User, HardHat, ShieldCheck, Menu, Search } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useMenuStore } from '@/store/menuStore';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useNotificationStore } from '@/store/useNotificationStore';
 
 export function MobileHeader() {
   const { user } = useAuthStore();
   const { language, changeLanguage } = useLanguage();
   const router = useRouter();
   const openMenu = useMenuStore((state) => state.openMenu);
+  const unreadCount = useNotificationStore((state) => state.unreadCount());
 
   const handleProfileClick = () => {
     if (!user) {
@@ -67,12 +69,21 @@ export function MobileHeader() {
         {user ? (
           <div className="flex items-center gap-1">
             {/* Notification Bell */}
-            <button 
+            <button
               onClick={handleNotificationClick}
+              aria-label={
+                unreadCount > 0
+                  ? `Notifications, ${unreadCount} unread`
+                  : 'Notifications'
+              }
               className="w-8 h-8 hover:bg-slate-50 text-slate-800 rounded-full flex items-center justify-center transition-colors relative"
             >
               <Bell size={16} />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-accent rounded-full border border-white"></span>
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 bg-accent-600 text-white text-[9px] font-bold rounded-full border border-white flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </button>
 
             {/* User Avatar Action */}

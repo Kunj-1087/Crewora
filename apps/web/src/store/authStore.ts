@@ -5,11 +5,11 @@
  */
 
 import { create } from 'zustand';
-import { Customer, Worker } from '@crewora/shared';
+import { Customer, Worker, Admin } from '@crewora/shared';
 import { tokenStore } from '@crewora/api-client';
 import apiClient from '@crewora/api-client';
 
-type AuthUser = (Customer & { role: 'customer' }) | (Worker & { role: 'worker' }) | null;
+type AuthUser = (Customer & { role: 'customer' }) | (Worker & { role: 'worker' }) | (Admin & { role: 'admin' }) | null;
 
 interface AuthState {
   user: AuthUser;
@@ -21,6 +21,7 @@ interface AuthState {
   sendOtp: (phone: string, userType: 'customer' | 'worker') => Promise<string | undefined>;
   loginCustomer: (phone: string, otp: string) => Promise<void>;
   loginWorker: (phone: string, otp: string) => Promise<void>;
+  loginAdmin: (email: string, password: string) => Promise<void>;
   registerCustomer: (data: {
     name: string;
     phone: string;
@@ -93,6 +94,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
+  loginAdmin: async (email, password) => {
+    set({ isLoading: true, error: null });
+    try {
+      const { data } = await apiClient.post('/auth/admin/login', { email, password });
+      const { user, accessToken } = data.data;
+      tokenStore.setToken(accessToken, 'admin');
+      set({ user: { ...user, role: 'admin' }, isLoading: false });
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Admin login failed';
+      set({ error: message, isLoading: false });
+      throw err;
+    }
+  },
+
   registerCustomer: async (formData) => {
     set({ isLoading: true, error: null });
     try {
@@ -128,6 +143,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         await apiClient.post('/auth/customer/logout');
       } else if (userType === 'worker') {
         await apiClient.post('/auth/worker/logout');
+      } else if (userType === 'admin') {
+        await apiClient.post('/auth/admin/logout');
       }
     } catch {
       // Ignore logout errors
@@ -159,6 +176,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return;
       } catch {
         // Not a worker session
+      }
+
+      try {
+        // Admin refresh returns the profile alongside the token (no /admin/me endpoint).
+        const { data } = await apiClient.post('/auth/admin/refresh', undefined, { timeout: 30000 });
+        tokenStore.setToken(data.data.accessToken, 'admin');
+        set({ user: { ...data.data.user, role: 'admin' }, isInitialized: true });
+        return;
+      } catch {
+        // Not an admin session
       }
     } catch {
       // No valid session

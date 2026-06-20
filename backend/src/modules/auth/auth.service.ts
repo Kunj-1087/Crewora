@@ -332,6 +332,12 @@ export async function logoutWorker(workerId: string) {
 
 // ─── ADMIN AUTH ───────────────────────────────────────────────────────────────
 
+/** Strip secrets before an admin record is sent to the client. */
+function sanitizeAdmin<T extends { passwordHash?: string; refreshTokenHash?: string | null }>(admin: T) {
+  const { passwordHash: _pw, refreshTokenHash: _rt, ...safe } = admin;
+  return safe;
+}
+
 export async function loginAdmin(email: string, password: string) {
   const admin = await prisma.admin.findUnique({
     where: { email: email.trim().toLowerCase() },
@@ -346,13 +352,61 @@ export async function loginAdmin(email: string, password: string) {
     throw new AppError('Invalid credentials', 401);
   }
 
+  const accessToken = signAccessToken(admin.id, 'admin');
+  const refreshToken = signRefreshToken(admin.id, 'admin');
+  const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+
   await prisma.admin.update({
     where: { id: admin.id },
-    data: { lastLoginAt: new Date() },
+    data: { lastLoginAt: new Date(), refreshTokenHash },
   });
 
-  const accessToken = signAccessToken(admin.id, 'admin');
-  return { admin, accessToken };
+  return { admin: sanitizeAdmin(admin), accessToken, refreshToken };
+}
+
+export async function refreshAdminToken(refreshToken: string) {
+  let payload;
+  try {
+    payload = verifyRefreshToken(refreshToken, 'admin');
+  } catch {
+    throw new AppError('Invalid refresh token', 401);
+  }
+
+  const admin = await prisma.admin.findUnique({
+    where: { id: payload.sub },
+  });
+
+  if (!admin || !admin.refreshTokenHash || !admin.isActive) {
+    throw new AppError('Session expired. Please log in again.', 401);
+  }
+
+  const isValid = await bcrypt.compare(refreshToken, admin.refreshTokenHash);
+  if (!isValid) {
+    // Token reuse detected — revoke all sessions
+    await prisma.admin.update({
+      where: { id: admin.id },
+      data: { refreshTokenHash: null },
+    });
+    throw new AppError('Token reuse detected. Please log in again.', 401, 'TOKEN_REUSE');
+  }
+
+  // Rotate refresh token
+  const newAccessToken = signAccessToken(admin.id, 'admin');
+  const newRefreshToken = signRefreshToken(admin.id, 'admin');
+  const newRefreshTokenHash = await bcrypt.hash(newRefreshToken, 10);
+  await prisma.admin.update({
+    where: { id: admin.id },
+    data: { refreshTokenHash: newRefreshTokenHash },
+  });
+
+  return { admin: sanitizeAdmin(admin), accessToken: newAccessToken, refreshToken: newRefreshToken };
+}
+
+export async function logoutAdmin(adminId: string) {
+  await prisma.admin.update({
+    where: { id: adminId },
+    data: { refreshTokenHash: null },
+  });
 }
 
 export async function registerDeviceToken(userId: string, userType: string, token: string) {

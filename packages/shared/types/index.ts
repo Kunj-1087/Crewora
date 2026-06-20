@@ -33,6 +33,19 @@ export interface Customer {
   createdAt: string;
 }
 
+export interface Admin {
+  id: string;
+  _id?: string;
+  name: string;
+  email: string;
+  role: string;
+  isActive: boolean;
+  lastLoginAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+
 export interface PortfolioItem {
   id: string;
   workerId: string;

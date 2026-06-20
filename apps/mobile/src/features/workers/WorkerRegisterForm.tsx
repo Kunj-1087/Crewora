@@ -6,10 +6,16 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { User, Phone, MapPin, Key } from 'lucide-react';
-import { Input } from '@crewora/ui';
-import { Button } from '@crewora/ui';
+import { User, Phone, MapPin } from 'lucide-react';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { OTPInput } from '@/components/ui/OTPInput';
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 import { useAuthStore } from '@/store/authStore';
+import { useOnline } from '@/hooks/useOnline';
+import { useCountdown } from '@/hooks/useCountdown';
+import { OTP_RESEND_SECONDS, cn } from '@/theme';
+import { maskPhone } from '@/lib/format';
 
 const TRADE_OPTIONS = [
   { value: 'plumber', label: 'Plumber' },
@@ -37,18 +43,33 @@ type FormData = z.infer<typeof schema>;
 export function WorkerRegisterForm() {
   const { registerWorker, sendOtp, isLoading, error, clearError } = useAuthStore();
   const router = useRouter();
+  const online = useOnline();
+  const resend = useCountdown(OTP_RESEND_SECONDS);
+
   const [selectedTrades, setSelectedTrades] = useState<string[]>([]);
   const [otpSent, setOtpSent] = useState(false);
   const [devOtp, setDevOtp] = useState<string | null>(null);
   const [showDevPopup, setShowDevPopup] = useState(false);
+  const [wrongOtp, setWrongOtp] = useState(false);
 
-  const { register, handleSubmit, setValue, getValues, setError, trigger, formState: { errors } } = useForm<FormData>({
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    getValues,
+    watch,
+    setError,
+    trigger,
+    formState: { errors },
+  } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { tradeCategories: [] },
   });
 
+  const otp = watch('otp') || '';
+
   const toggleTrade = (value: string) => {
-    if (otpSent) return; // Prevent changing trade categories after OTP is sent
+    if (otpSent) return; // trades are locked once OTP is sent
     const updated = selectedTrades.includes(value)
       ? selectedTrades.filter((t) => t !== value)
       : [...selectedTrades, value];
@@ -61,10 +82,10 @@ export function WorkerRegisterForm() {
     const isValid = await trigger(['name', 'phone', 'tradeCategories', 'city']);
     if (!isValid) return;
 
-    const values = getValues();
     try {
-      const generatedOtp = await sendOtp(values.phone, 'worker');
+      const generatedOtp = await sendOtp(getValues('phone'), 'worker');
       setOtpSent(true);
+      resend.start();
       if (generatedOtp) {
         setDevOtp(generatedOtp);
         setShowDevPopup(true);
@@ -74,157 +95,216 @@ export function WorkerRegisterForm() {
     }
   };
 
-  const onSubmit = async (data: FormData) => {
+  const verify = async (value: string) => {
     clearError();
-    if (!otpSent) {
-      await handleSendOtp();
-      return;
-    }
-    if (!data.otp || data.otp.length !== 6) {
+    setWrongOtp(false);
+    if (!value || value.length !== 6) {
       setError('otp', { type: 'manual', message: 'Enter 6-digit OTP code' });
       return;
     }
     try {
+      const data = getValues();
       await registerWorker({
         name: data.name,
         phone: data.phone,
         tradeCategories: data.tradeCategories,
         city: data.city,
-        otp: data.otp,
+        otp: value,
       });
       router.push('/worker/dashboard');
     } catch {
-      // Error handled in store
+      setWrongOtp(true);
     }
   };
 
+  const onSubmit = async (data: FormData) => {
+    if (!otpSent) {
+      await handleSendOtp();
+      return;
+    }
+    await verify(data.otp || '');
+  };
+
+  const resetDetails = () => {
+    setOtpSent(false);
+    setDevOtp(null);
+    setWrongOtp(false);
+    setValue('otp', '');
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
       {error && (
-        <div className="bg-error-light text-error text-sm px-4 py-3 rounded-lg border border-red-200">{error}</div>
-      )}
-
-
-      <Input label="Full Name" placeholder="Suresh Kumar" leftIcon={<User size={16} />} error={errors.name?.message} required disabled={otpSent} {...register('name')} />
-      <Input label="Phone Number" type="tel" placeholder="9876543210" leftIcon={<Phone size={16} />} error={errors.phone?.message} required disabled={otpSent} {...register('phone')} />
-      <Input label="City / Area" placeholder="Mumbai, Delhi..." leftIcon={<MapPin size={16} />} error={errors.city?.message} required disabled={otpSent} {...register('city')} />
-
-      {/* Trade Categories Multi-Select */}
-      <div>
-        <label className="block text-sm font-medium text-navy mb-1.5">
-          Trade Categories <span className="text-error">*</span>
-        </label>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {TRADE_OPTIONS.map(({ value, label }) => (
-            <button
-              key={value}
-              type="button"
-              disabled={otpSent}
-              onClick={() => toggleTrade(value)}
-              className={`px-3 py-2 rounded-lg text-sm font-medium border-2 transition-all ${
-                selectedTrades.includes(value)
-                  ? 'border-primary-500 bg-primary-50 text-primary-600'
-                  : 'border-gray-border bg-white text-gray-body hover:border-primary-300'
-              } ${otpSent ? 'opacity-80 cursor-not-allowed' : ''}`}
-            >
-              {label}
-            </button>
-          ))}
+        <div
+          role="alert"
+          className="rounded-xl border border-red-200 bg-error-light px-4 py-3 text-sm text-error"
+        >
+          {error}
         </div>
-        {errors.tradeCategories && (
-          <p className="text-sm text-error mt-1">{errors.tradeCategories.message}</p>
-        )}
-      </div>
-
-      {otpSent && (
-        <Input
-          label="Verification Code (OTP)"
-          type="text"
-          maxLength={6}
-          placeholder="Enter 6-digit OTP"
-          leftIcon={<Key size={16} />}
-          error={errors.otp?.message}
-          required
-          autoFocus
-          {...register('otp')}
-        />
       )}
 
       {!otpSent ? (
-        <Button type="button" onClick={handleSendOtp} fullWidth isLoading={isLoading} size="lg" className="mt-2">
-          Send OTP
-        </Button>
-      ) : (
-        <div className="space-y-2 mt-2">
-          <Button type="submit" fullWidth isLoading={isLoading} size="lg">
-            Verify & Create Account
-          </Button>
-          <button
-            type="button"
-            onClick={() => {
-              setOtpSent(false);
-              setDevOtp(null);
-            }}
-            className="w-full text-center text-xs text-primary-500 hover:underline pt-2"
-          >
-            Change Registration Details
-          </button>
-        </div>
-      )}
-
-      <p className="text-center text-xs text-gray-body pt-2">
-        Your profile will be reviewed by our team within 24–48 hours.
-      </p>
-
-      <p className="text-center text-sm text-gray-body">
-        Already registered?{' '}
-        <Link href="/worker/login" className="text-primary-500 font-medium hover:underline">Sign In</Link>
-      </p>
-      {showDevPopup && devOtp && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div 
-            onClick={() => setShowDevPopup(false)}
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" 
+        <>
+          <Input
+            label="Full Name"
+            leftIcon={<User size={18} />}
+            error={errors.name?.message}
+            required
+            {...register('name')}
           />
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm border border-slate-100 overflow-hidden relative z-10 p-6 animate-scaleIn select-none space-y-4">
-            <div className="text-center">
-              <h3 className="text-base font-black text-slate-900 tracking-tight">Demo Verification Code</h3>
-              <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
-                An OTP verification code was generated for this phone number in developer mode.
+          <Input
+            label="Phone Number"
+            type="tel"
+            inputMode="numeric"
+            autoComplete="tel"
+            leftIcon={<Phone size={18} />}
+            error={errors.phone?.message}
+            required
+            {...register('phone')}
+          />
+          <Input
+            label="City / Area"
+            leftIcon={<MapPin size={18} />}
+            error={errors.city?.message}
+            required
+            {...register('city')}
+          />
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-navy">
+              Trade Categories <span className="text-error">*</span>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {TRADE_OPTIONS.map(({ value, label }) => {
+                const active = selectedTrades.includes(value);
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => toggleTrade(value)}
+                    className={cn(
+                      'rounded-full border-2 px-3.5 py-2 text-sm font-semibold transition-all',
+                      'active:scale-95 motion-reduce:active:scale-100',
+                      active
+                        ? 'border-accent-600 bg-accent-600 text-white'
+                        : 'border-gray-border bg-white text-gray-body hover:border-accent-300'
+                    )}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            {errors.tradeCategories && (
+              <p className="mt-1.5 text-[13px] text-error" role="alert">
+                {errors.tradeCategories.message}
               </p>
-            </div>
-            <div className="flex flex-col items-center justify-center bg-slate-50 py-4 rounded-xl border border-dashed border-slate-200">
-              <span className="text-3xl font-black tracking-widest text-primary-500 font-mono">
-                {devOtp}
-              </span>
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">
-                Valid for 5 minutes
-              </span>
-            </div>
-            <div className="flex gap-3 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowDevPopup(false)}
-                className="flex-1 text-xs py-2.5 h-10 border-slate-200 text-slate-600 hover:bg-slate-50"
-              >
-                Dismiss
-              </Button>
-              <Button
-                type="button"
-                onClick={() => {
-                  setValue('otp', devOtp);
-                  setShowDevPopup(false);
-                  onSubmit(getValues());
-                }}
-                className="flex-1 bg-accent-600 hover:bg-accent-700 active:bg-accent-800 text-white font-extrabold text-xs py-2.5 rounded-xl border-none h-10"
-              >
-                Autofill & Verify
-              </Button>
-            </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-sm text-gray-body">
+            Enter the 6-digit code sent to{' '}
+            <span className="font-semibold text-navy">
+              {maskPhone(getValues('phone'))}
+            </span>
+          </p>
+          <OTPInput
+            value={otp}
+            error={wrongOtp}
+            onChange={(v) => {
+              setValue('otp', v);
+              if (wrongOtp) setWrongOtp(false);
+            }}
+            onComplete={(v) => verify(v)}
+          />
+          {errors.otp?.message && (
+            <p className="text-[13px] text-error" role="alert">
+              {errors.otp.message}
+            </p>
+          )}
+
+          <div className="flex items-center justify-between pt-1 text-xs">
+            <button
+              type="button"
+              onClick={resetDetails}
+              className="font-semibold text-accent-700 hover:underline"
+            >
+              Change details
+            </button>
+            <button
+              type="button"
+              disabled={resend.active || isLoading || !online}
+              onClick={handleSendOtp}
+              className="font-semibold text-accent-700 enabled:hover:underline disabled:text-gray-caption"
+            >
+              {resend.active ? `Resend in ${resend.seconds}s` : 'Resend OTP'}
+            </button>
           </div>
         </div>
       )}
+
+      {!otpSent ? (
+        <Button
+          type="button"
+          onClick={handleSendOtp}
+          fullWidth
+          size="lg"
+          isLoading={isLoading}
+          disabled={!online}
+        >
+          {online ? 'Send OTP' : 'No internet connection'}
+        </Button>
+      ) : (
+        <Button
+          type="submit"
+          fullWidth
+          size="lg"
+          isLoading={isLoading}
+          disabled={otp.length !== 6 || !online}
+        >
+          Verify & Create Account
+        </Button>
+      )}
+
+      <p className="text-center text-xs text-gray-body">
+        Your profile will be reviewed by our team within 24–48 hours.
+      </p>
+      <p className="text-center text-sm text-gray-body">
+        Already registered?{' '}
+        <Link
+          href="/worker/login"
+          className="font-semibold text-accent-700 hover:underline"
+        >
+          Sign In
+        </Link>
+      </p>
+
+      <ConfirmationModal
+        open={showDevPopup && !!devOtp}
+        onOpenChange={setShowDevPopup}
+        title="Demo Verification Code"
+        description="An OTP was generated for this number in developer mode."
+        confirmLabel="Autofill & Verify"
+        cancelLabel="Dismiss"
+        onConfirm={() => {
+          if (!devOtp) return;
+          setValue('otp', devOtp);
+          setShowDevPopup(false);
+          verify(devOtp);
+        }}
+      >
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-border bg-gray-light py-4">
+          <span className="font-mono text-3xl font-black tracking-widest text-accent-700">
+            {devOtp}
+          </span>
+          <span className="mt-1 text-[10px] font-bold uppercase tracking-wider text-gray-caption">
+            Valid for 5 minutes
+          </span>
+        </div>
+      </ConfirmationModal>
     </form>
   );
 }

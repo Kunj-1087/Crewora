@@ -1,1 +1,53 @@
 @import '@crewora/ui/design-system/globals.css';
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Mobile-local global layer (does not affect the shared @crewora/ui package).
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* Premium skeleton shimmer — sweeps a light highlight across the placeholder. */
+.skeleton-sweep {
+  position: relative;
+  overflow: hidden;
+  background-color: #e2e8f0; /* theme.colors.skeleton */
+}
+.skeleton-sweep::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(241, 245, 249, 0.9) 50%,
+    transparent 100%
+  );
+  animation: shimmer-sweep 1.4s infinite;
+}
+@keyframes shimmer-sweep {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Safe-area helpers for the Capacitor native shell (notch / home indicator). */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Respect the user's reduced-motion preference globally (WCAG / spec §7). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .skeleton-sweep::after {
+    animation: none;
+  }
+}

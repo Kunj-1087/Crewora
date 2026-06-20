@@ -57,7 +57,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     async function detectLanguage() {
       // 1. Check if user has saved preference in database (via Zustand authStore)
-      if (isInitialized && user && user.languagePreference) {
+      if (isInitialized && user && 'languagePreference' in user && user.languagePreference) {
         updateLanguageConfigs(user.languagePreference as LanguageType);
         setLoading(false);
         return;
@@ -87,7 +87,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
 
       // If user is logged in but has no preference in DB, sync the detected language
-      if (isInitialized && user && !user.languagePreference) {
+      if (isInitialized && user && 'languagePreference' in user && !user.languagePreference) {
         try {
           await apiClient.post('/user/language', { language: detected });
           updateUser({ languagePreference: detected });
@@ -103,7 +103,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   // Expose manual language switcher
   const changeLanguage = async (lang: LanguageType) => {
     updateLanguageConfigs(lang);
-    if (user) {
+    if (user && 'languagePreference' in user) {
       try {
         await apiClient.post('/user/language', { language: lang });
         updateUser({ languagePreference: lang });

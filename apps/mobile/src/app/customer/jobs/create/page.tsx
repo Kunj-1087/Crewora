@@ -2,25 +2,56 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { 
-  Wrench, Zap, Paintbrush, Flame, Wind, LayoutGrid, Home, HelpCircle, 
-  MapPin, Clock, ArrowLeft, Send, CheckCircle2, Info, Bell, Settings, ChevronDown, User, Calendar
+import {
+  Wrench,
+  Zap,
+  Hammer,
+  Paintbrush,
+  Flame,
+  Layers,
+  Wind,
+  Grid3x3,
+  Home,
+  HelpCircle,
+  MapPin,
+  LocateFixed,
+  ArrowLeft,
+  Send,
+  CheckCircle2,
+  Info,
+  type LucideIcon,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import apiClient from '@crewora/api-client';
-import { Input, Button } from '@crewora/ui';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { useToast } from '@/hooks/useToast';
+import { useOnline } from '@/hooks/useOnline';
+import { normalizeError } from '@/lib/api/errors';
+import { logError } from '@/lib/log';
+import { cn } from '@/theme';
 
 // Schema matches backend expectations
 const schema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters').max(150),
-  description: z.string().min(20, 'Description must be at least 20 characters').max(2000),
+  description: z
+    .string()
+    .min(20, 'Description must be at least 20 characters')
+    .max(2000),
   tradeCategory: z.enum([
-    'plumber', 'electrician', 'carpenter', 'painter',
-    'welder', 'mason', 'hvac', 'tiler', 'roofer', 'other'
+    'plumber',
+    'electrician',
+    'carpenter',
+    'painter',
+    'welder',
+    'mason',
+    'hvac',
+    'tiler',
+    'roofer',
+    'other',
   ]),
   address: z.string().min(5, 'Detailed location address is required'),
   urgency: z.enum(['asap', 'scheduled']),
@@ -29,42 +60,43 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-const CATEGORIES = [
-  { id: 'plumber', label: 'Plumber' },
-  { id: 'electrician', label: 'Electrician' },
-  { id: 'carpenter', label: 'Carpenter' },
-  { id: 'painter', label: 'Painter' },
-  { id: 'welder', label: 'Welder' },
-  { id: 'mason', label: 'Masonry' },
-  { id: 'hvac', label: 'HVAC' },
-  { id: 'tiler', label: 'Tiler' },
-  { id: 'roofer', label: 'Roofer' },
-  { id: 'other', label: 'Other Trades' },
+const CATEGORIES: { id: FormData['tradeCategory']; label: string; Icon: LucideIcon }[] = [
+  { id: 'plumber', label: 'Plumber', Icon: Wrench },
+  { id: 'electrician', label: 'Electrical', Icon: Zap },
+  { id: 'carpenter', label: 'Carpenter', Icon: Hammer },
+  { id: 'painter', label: 'Painter', Icon: Paintbrush },
+  { id: 'welder', label: 'Welder', Icon: Flame },
+  { id: 'mason', label: 'Mason', Icon: Layers },
+  { id: 'hvac', label: 'HVAC', Icon: Wind },
+  { id: 'tiler', label: 'Tiler', Icon: Grid3x3 },
+  { id: 'roofer', label: 'Roofer', Icon: Home },
+  { id: 'other', label: 'Other', Icon: HelpCircle },
 ];
 
 export default function CreateJobPage() {
-  const { user, isInitialized, logout } = useAuthStore();
+  const { user, isInitialized } = useAuthStore();
   const router = useRouter();
-  const [coords, setCoords] = useState<[number, number]>([72.8777, 19.0760]); // Default Mumbai
+  const { showToast } = useToast();
+  const online = useOnline();
+
+  const [coords, setCoords] = useState<[number, number]>([72.8777, 19.076]); // Default Mumbai
   const [detectingLoc, setDetectingLoc] = useState(false);
-  const [apiError, setApiError] = useState<string | null>(null);
+  const [located, setLocated] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const { 
-    register, 
-    handleSubmit, 
-    setValue, 
-    watch, 
-    formState: { errors, isSubmitting } 
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      tradeCategory: 'plumber',
-      urgency: 'asap',
-    }
+    defaultValues: { tradeCategory: 'plumber', urgency: 'asap' },
   });
 
   const selectedUrgency = watch('urgency');
+  const selectedCategory = watch('tradeCategory');
 
   useEffect(() => {
     if (isInitialized) {
@@ -83,10 +115,11 @@ export default function CreateJobPage() {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setCoords([position.coords.longitude, position.coords.latitude]);
+        setLocated(true);
         setDetectingLoc(false);
       },
       (error) => {
-        console.warn('Geolocation denied or failed, using defaults.', error);
+        logError(error, 'geolocation');
         setDetectingLoc(false);
       },
       { timeout: 8000 }
@@ -98,288 +131,218 @@ export default function CreateJobPage() {
   }, []);
 
   const onSubmit = async (data: FormData) => {
-    setApiError(null);
     try {
       const payload = {
         title: data.title,
         description: data.description,
         tradeCategory: data.tradeCategory,
         urgency: data.urgency,
-        location: {
-          address: data.address,
-          coordinates: coords,
-        },
-        scheduledAt: data.urgency === 'scheduled' && data.scheduledAt 
-          ? new Date(data.scheduledAt).toISOString() 
-          : undefined,
+        location: { address: data.address, coordinates: coords },
+        scheduledAt:
+          data.urgency === 'scheduled' && data.scheduledAt
+            ? new Date(data.scheduledAt).toISOString()
+            : undefined,
       };
 
-      const { data: resData } = await apiClient.post('/jobs', payload);
-      const jobId = resData.data.job.id;
+      await apiClient.post('/jobs', payload);
       setSuccess(true);
-      setTimeout(() => {
-        router.push(`/customer/dashboard`);
-      }, 1500);
-    } catch (err: any) {
-      console.error('Failed to post job:', err);
-      setApiError(err?.response?.data?.message || 'Could not post the job. Please verify parameters.');
+      showToast('Problem posted successfully', 'success');
+      setTimeout(() => router.push('/customer/dashboard'), 1500);
+    } catch (err) {
+      logError(err, 'createJob');
+      showToast(normalizeError(err).message, 'error');
     }
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    router.push('/');
   };
 
   if (!isInitialized || !user || user.role !== 'customer') {
     return (
-      <div className="flex-1 flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-primary-200 border-t-primary-500 rounded-full animate-spin" />
+      <div className="flex flex-1 items-center justify-center py-12">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-accent-100 border-t-accent-600" />
       </div>
     );
   }
 
   if (success) {
     return (
-      <div className="flex-1 flex flex-col justify-center items-center min-h-screen p-6 text-center bg-white select-none animate-fadeIn">
-        <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4 text-emerald-600 animate-bounce">
+      <div className="flex flex-1 animate-fadeIn flex-col items-center justify-center p-6 text-center">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-success-light text-success">
           <CheckCircle2 size={36} />
         </div>
-        <h2 className="text-xl font-bold text-slate-900">Job Posted Successfully!</h2>
-        <p className="text-slate-400 text-xs mt-2">Matching with active workers near your location...</p>
+        <h2 className="text-xl font-bold text-navy">Job Posted Successfully!</h2>
+        <p className="mt-2 text-sm text-gray-body">
+          Matching with active workers near your location…
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8FAFC]">
-      
-      {/* ─── Dashboard-Style Top Nav Bar ────────────────────────────────────── */}
-      <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0 relative z-10 select-none">
-        <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 bg-accent-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">C</span>
-            </div>
-            <span className="text-lg font-bold text-slate-900 group-hover:text-accent-600 transition-colors">
-              Crewora
-            </span>
-          </Link>
-          <div className="hidden md:flex items-center gap-4 text-xs font-bold text-slate-400">
-            <Link href="/customer/dashboard" className="hover:text-slate-800 transition-colors">Dashboard</Link>
-            <span className="text-slate-300">/</span>
-            <span className="text-slate-800">Jobs</span>
-            <span className="text-slate-300">/</span>
-            <Link href="#" className="hover:text-slate-800 transition-colors">Messages</Link>
-            <span className="text-slate-300">/</span>
-            <Link href="#" className="hover:text-slate-800 transition-colors">Talent</Link>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => router.push('/customer/jobs/create')}
-            className="bg-accent-600 hover:bg-accent-700 text-white font-extrabold text-[11px] px-3.5 py-2 rounded-lg"
-          >
-            Post a Job
-          </button>
-          <button className="p-2 text-slate-450 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors border-none outline-none">
-            <Bell size={16} />
-          </button>
-          <button className="p-2 text-slate-450 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors border-none outline-none">
-            <Settings size={16} />
-          </button>
-          
-          <div className="h-6 w-px bg-slate-200 mx-1"></div>
-
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-accent-100 border border-accent-200 flex items-center justify-center text-accent-700 font-black text-xs">
-              {user.name.charAt(0).toUpperCase()}
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* ─── Breadcrumbs and Headers ─────────────────────────────────────────── */}
-      <div className="max-w-3xl mx-auto w-full px-6 pt-8 text-left space-y-1 select-none">
-        <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">
-          <Link href="/customer/dashboard" className="hover:text-slate-650">Dashboard</Link>
-          <span>&gt;</span>
-          <span className="text-slate-800">Post a Job</span>
-        </div>
-        <h1 className="text-3xl font-extrabold text-[#0b1528] tracking-tight">Post a New Job</h1>
-        <p className="text-xs text-slate-400">Provide some details to find the best professional for your project.</p>
+    <div className="flex flex-1 flex-col">
+      {/* Header */}
+      <div className="flex items-center gap-3 border-b border-slate-100 bg-white px-4 py-3">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          aria-label="Go back"
+          className="-ml-1 rounded-full p-1.5 text-slate-600 transition-colors hover:bg-slate-100"
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <h1 className="text-base font-bold text-navy">Post a Problem</h1>
       </div>
 
-      {/* ─── Main Form Card Panel ───────────────────────────────────────────── */}
-      <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-6 pb-20">
-        
-        <form 
-          onSubmit={handleSubmit(onSubmit)} 
-          className="bg-white rounded-2xl border border-slate-200/80 p-8 shadow-sm text-left space-y-6"
-        >
-          {apiError && (
-            <div className="bg-rose-50 text-rose-700 text-xs px-4 py-3 rounded-lg border border-rose-100 select-none">
-              {apiError}
-            </div>
+      <form onSubmit={handleSubmit(onSubmit)} className="flex-1 space-y-6 p-4 pb-24">
+        {/* Category chips — horizontal scroll */}
+        <div className="space-y-2">
+          <label className="block text-sm font-semibold text-navy">
+            Service category
+          </label>
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+            {CATEGORIES.map(({ id, label, Icon }) => {
+              const active = selectedCategory === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setValue('tradeCategory', id, { shouldValidate: true })}
+                  className={cn(
+                    'flex shrink-0 items-center gap-1.5 rounded-full border-2 px-3.5 py-2 text-sm font-semibold transition-all',
+                    'active:scale-95 motion-reduce:active:scale-100',
+                    active
+                      ? 'border-accent-600 bg-accent-600 text-white'
+                      : 'border-gray-border bg-white text-gray-body hover:border-accent-300'
+                  )}
+                >
+                  <Icon size={15} aria-hidden="true" />
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          {errors.tradeCategory && (
+            <p className="text-[13px] text-error" role="alert">
+              {errors.tradeCategory.message}
+            </p>
           )}
+        </div>
 
-          {/* Job Title */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">Job Title</label>
-            <input 
-              type="text" 
-              placeholder="e.g. Fix leaking kitchen pipe"
-              className="w-full bg-white border border-slate-200 focus:border-accent-500 text-xs px-4 py-3.5 rounded-lg outline-none transition-all text-slate-800"
-              {...register('title')}
-            />
-            {errors.title && <p className="text-[10px] font-bold text-rose-600 mt-0.5">{errors.title.message}</p>}
-          </div>
+        <Input
+          label="Job title"
+          error={errors.title?.message}
+          required
+          {...register('title')}
+        />
 
-          {/* Trade Category Dropdown */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">Trade Category</label>
-            <div className="relative">
-              <select 
-                className="w-full bg-white border border-slate-200 focus:border-accent-500 text-xs px-4 py-3.5 rounded-lg outline-none transition-all text-slate-800 appearance-none cursor-pointer"
-                {...register('tradeCategory')}
-              >
-                <option value="" disabled>Select a category</option>
-                {CATEGORIES.map((cat) => (
-                  <option key={cat.id} value={cat.id}>{cat.label}</option>
-                ))}
-              </select>
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                <ChevronDown size={16} />
-              </div>
-            </div>
-            {errors.tradeCategory && <p className="text-[10px] font-bold text-rose-600 mt-0.5">{errors.tradeCategory.message}</p>}
-          </div>
+        {/* Description */}
+        <div className="space-y-1.5">
+          <label htmlFor="description" className="block text-sm font-semibold text-navy">
+            Description
+          </label>
+          <textarea
+            id="description"
+            rows={5}
+            placeholder="Describe what needs to be done…"
+            aria-invalid={!!errors.description}
+            className={cn(
+              'min-h-[120px] w-full resize-y rounded-xl border bg-white px-4 py-3 text-[16px] text-navy outline-none transition-[border-color,box-shadow]',
+              'placeholder:text-gray-caption focus:ring-2',
+              errors.description
+                ? 'border-error focus:border-error focus:ring-red-100'
+                : 'border-gray-border focus:border-accent-600 focus:ring-accent-100'
+            )}
+            {...register('description')}
+          />
+          {errors.description && (
+            <p className="text-[13px] text-error" role="alert">
+              {errors.description.message}
+            </p>
+          )}
+        </div>
 
-          {/* Job Description Textarea */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">Job Description</label>
-            <textarea 
-              rows={5}
-              placeholder="Describe what needs to be done..."
-              className="w-full bg-white border border-slate-200 focus:border-accent-500 text-xs px-4 py-3.5 rounded-lg outline-none transition-all text-slate-800 resize-y"
-              {...register('description')}
-            />
-            {errors.description && <p className="text-[10px] font-bold text-rose-600 mt-0.5">{errors.description.message}</p>}
-          </div>
-
-          {/* Location input */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">Location</label>
-            <div className="relative flex items-center">
-              <span className="absolute left-4 text-slate-450">
-                <MapPin size={16} />
-              </span>
-              <input 
-                type="text" 
-                placeholder="Enter job location"
-                className="w-full bg-white border border-slate-200 focus:border-accent-500 text-xs pl-11 pr-4 py-3.5 rounded-lg outline-none transition-all text-slate-800"
-                {...register('address')}
-              />
-            </div>
-            {errors.address && <p className="text-[10px] font-bold text-rose-600 mt-0.5">{errors.address.message}</p>}
-            
-            <div className="flex items-center justify-between text-[10px] px-1 font-bold">
-              <span className="text-slate-400">Coordinates: {coords[1].toFixed(4)}, {coords[0].toFixed(4)}</span>
-              <button 
-                type="button" 
-                onClick={requestLocation}
-                disabled={detectingLoc}
-                className="text-accent-600 hover:text-accent-700 flex items-center gap-0.5 hover:underline disabled:text-slate-350"
-              >
-                <span>Use my current location</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Preferred Date & Urgency Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {/* Preferred Date */}
-            <div className="space-y-1.5 text-left">
-              <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">Preferred Date</label>
-              <div className="relative">
-                <input 
-                  type="date"
-                  className="w-full bg-white border border-slate-200 focus:border-accent-500 text-xs px-4 py-3.5 rounded-lg outline-none transition-all text-slate-800"
-                  {...register('scheduledAt')}
-                />
-              </div>
-            </div>
-
-            {/* Urgency */}
-            <div className="space-y-1.5 text-left">
-              <label className="text-xs font-black text-slate-700 uppercase tracking-wider block">Urgency</label>
-              <div className="bg-slate-100 rounded-xl p-1 grid grid-cols-2 gap-1 select-none">
-                <button
-                  type="button"
-                  onClick={() => { setValue('urgency', 'asap'); }}
-                  className={`py-2.5 rounded-lg text-xs font-extrabold uppercase tracking-wider transition-all text-center ${
-                    selectedUrgency === 'asap'
-                      ? 'bg-white text-slate-800 shadow-sm border border-slate-200/50'
-                      : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  ASAP
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setValue('urgency', 'scheduled'); }}
-                  className={`py-2.5 rounded-lg text-xs font-extrabold uppercase tracking-wider transition-all text-center ${
-                    selectedUrgency === 'scheduled'
-                      ? 'bg-white text-slate-800 shadow-sm border border-slate-200/50'
-                      : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  Scheduled
-                </button>
-              </div>
-            </div>
-
-          </div>
-
-          <div className="border-t border-slate-100 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-            {/* Match Notice info */}
-            <div className="flex items-center gap-2.5 text-left">
-              <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                <Info size={12} className="stroke-[2.5]" />
-              </div>
-              <p className="text-[10px] text-slate-400 font-semibold max-w-sm">
-                {"Once posted, we'll match you with verified workers in your area."}
-              </p>
-            </div>
-
-            <button 
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full sm:w-auto bg-accent-600 hover:bg-accent-700 disabled:bg-accent-400 text-white font-extrabold text-xs px-8 py-3.5 rounded-lg shadow-md hover:shadow transition-all shrink-0 border-none outline-none"
+        {/* Location */}
+        <div className="space-y-2">
+          <Input
+            label="Location"
+            leftIcon={<MapPin size={18} />}
+            error={errors.address?.message}
+            required
+            {...register('address')}
+          />
+          <div className="flex items-center justify-between">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-50 px-2.5 py-1 text-[11px] font-semibold text-accent-700">
+              <MapPin size={12} />
+              {located ? 'Location detected' : 'Default location'} ·{' '}
+              {coords[1].toFixed(3)}, {coords[0].toFixed(3)}
+            </span>
+            <button
+              type="button"
+              onClick={requestLocation}
+              disabled={detectingLoc}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-accent-700 hover:underline disabled:text-gray-caption"
             >
-              {isSubmitting ? 'Posting...' : 'Post Job'}
+              <LocateFixed size={13} />
+              {detectingLoc ? 'Detecting…' : 'Detect my location'}
             </button>
           </div>
+        </div>
 
-        </form>
-
-      </main>
-
-      {/* Footer */}
-      <footer className="bg-slate-900 border-t border-slate-800 mt-auto py-6 px-8 select-none text-left">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500 font-semibold">
-          <p>© 2026 Crewora Marketplace. All rights reserved.</p>
-          <div className="flex gap-4">
-            <Link href="#" className="hover:text-slate-400">Terms of Service</Link>
-            <Link href="#" className="hover:text-slate-400">Privacy Policy</Link>
-            <Link href="#" className="hover:text-slate-400">Contact Support</Link>
-            <Link href="#" className="hover:text-slate-400">About Us</Link>
+        {/* Urgency */}
+        <div className="space-y-1.5">
+          <label className="block text-sm font-semibold text-navy">Urgency</label>
+          <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
+            {(['asap', 'scheduled'] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={selectedUrgency === value}
+                onClick={() => setValue('urgency', value)}
+                className={cn(
+                  'rounded-lg py-2.5 text-xs font-bold uppercase tracking-wider transition-all',
+                  selectedUrgency === value
+                    ? 'bg-white text-navy shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                )}
+              >
+                {value === 'asap' ? 'ASAP' : 'Scheduled'}
+              </button>
+            ))}
           </div>
         </div>
-      </footer>
 
+        {/* Preferred date (only relevant when scheduled) */}
+        {selectedUrgency === 'scheduled' && (
+          <div className="space-y-1.5">
+            <label htmlFor="scheduledAt" className="block text-sm font-semibold text-navy">
+              Preferred date
+            </label>
+            <input
+              id="scheduledAt"
+              type="date"
+              className="w-full rounded-xl border border-gray-border bg-white px-4 py-3 text-[16px] text-navy outline-none transition-[border-color,box-shadow] focus:border-accent-600 focus:ring-2 focus:ring-accent-100"
+              {...register('scheduledAt')}
+            />
+          </div>
+        )}
+
+        <div className="flex items-start gap-2 rounded-xl bg-accent-50 p-3">
+          <Info size={16} className="mt-0.5 shrink-0 text-accent-600" aria-hidden="true" />
+          <p className="text-xs text-gray-body">
+            Once posted, we&apos;ll match you with verified workers in your area.
+          </p>
+        </div>
+
+        <Button
+          type="submit"
+          fullWidth
+          size="lg"
+          isLoading={isSubmitting}
+          disabled={!online}
+          leftIcon={<Send size={18} />}
+        >
+          {online ? 'Post Job' : 'No internet connection'}
+        </Button>
+      </form>
     </div>
   );
 }

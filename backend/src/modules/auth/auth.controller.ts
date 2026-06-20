@@ -208,12 +208,47 @@ export async function loginAdmin(
 ): Promise<void> {
   try {
     const { email, password } = req.body;
-    const { admin, accessToken } = await authService.loginAdmin(email, password);
+    const { admin, accessToken, refreshToken } = await authService.loginAdmin(email, password);
+    res.cookie('crewora_admin_refresh', refreshToken, REFRESH_COOKIE_OPTIONS);
     res.json({
       success: true,
       message: 'Admin login successful',
       data: { user: admin, accessToken },
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function refreshAdminToken(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const refreshToken = req.cookies?.crewora_admin_refresh;
+    if (!refreshToken) {
+      res.status(401).json({ success: false, message: 'No refresh token' });
+      return;
+    }
+    const { admin, accessToken, refreshToken: newRefreshToken } =
+      await authService.refreshAdminToken(refreshToken);
+    res.cookie('crewora_admin_refresh', newRefreshToken, REFRESH_COOKIE_OPTIONS);
+    res.json({ success: true, data: { user: admin, accessToken } });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function logoutAdmin(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    if (req.user?.id) await authService.logoutAdmin(req.user.id);
+    res.clearCookie('crewora_admin_refresh', { path: '/' });
+    res.json({ success: true, message: 'Logged out successfully' });
   } catch (error) {
     next(error);
   }

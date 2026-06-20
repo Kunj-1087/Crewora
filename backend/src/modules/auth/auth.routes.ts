@@ -83,6 +83,10 @@ router.post(
   authController.loginAdmin
 );
 
+router.post('/admin/refresh', authRateLimiter, authController.refreshAdminToken);
+
+router.post('/admin/logout', requireAuth('admin'), authController.logoutAdmin);
+
 router.post(
   '/device-token',
   requireAuth('customer', 'worker'),

@@ -7,6 +7,9 @@ import { SocketProvider } from '@/contexts/SocketContext';
 import { MobileShell } from '@/components/layout/MobileShell';
 import { MobileHeader } from '@/components/layout/MobileHeader';
 import { MobileTabBar } from '@/components/layout/MobileTabBar';
+import { ToastProvider } from '@/components/ui/Toast';
+import { OfflineBanner } from '@/components/OfflineBanner';
+import { ScreenErrorBoundary } from '@/components/ScreenErrorBoundary';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -34,13 +37,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AuthProvider>
           <LanguageProvider>
             <SocketProvider>
-              <MobileShell>
-                <MobileHeader />
-                <main className="flex-1 flex flex-col overflow-y-auto min-h-0 bg-slate-50">
-                  {children}
-                </main>
-                <MobileTabBar />
-              </MobileShell>
+              <ToastProvider>
+                <MobileShell>
+                  <OfflineBanner />
+                  <MobileHeader />
+                  <main className="flex-1 flex flex-col overflow-y-auto min-h-0 bg-slate-50">
+                    <ScreenErrorBoundary>{children}</ScreenErrorBoundary>
+                  </main>
+                  <MobileTabBar />
+                </MobileShell>
+              </ToastProvider>
             </SocketProvider>
           </LanguageProvider>
         </AuthProvider>
