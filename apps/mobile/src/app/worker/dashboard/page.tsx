@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Check, HardHat, Calendar, MapPin, Phone, 
-  X, CheckCircle2, User, RefreshCw, Star, Info, Bell, Settings, LogOut, SlidersHorizontal, ShieldAlert, BadgeAlert,
-  LayoutDashboard, Clock
+  X, CheckCircle2, User, RefreshCw, Star, Info, Bell, Settings, LogOut, SlidersHorizontal,
+  LayoutDashboard
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import apiClient from '@crewora/api-client';
@@ -396,8 +396,7 @@ export default function WorkerDashboard() {
           <div className="space-y-4">
             <div className="flex justify-between items-end border-b border-slate-200/60 pb-3">
               <div className="text-left select-none">
-                <h2 className="text-lg font-extrabold text-[#0b1528] tracking-tight">Job Opportunities Near You</h2>
-                <p className="text-xs text-slate-400 mt-0.5">Based on your skills and location ({user.city || 'Seattle, WA'})</p>
+                <h2 className="text-lg font-extrabold text-[#0b1528] tracking-tight">Job Opportunities Near You</h2>                    <p className="text-xs text-slate-400 mt-0.5">Based on your skills and location ({user.city || 'Mumbai'})</p>
               </div>
               <button className="flex items-center gap-1.5 border border-slate-200 hover:border-slate-350 hover:bg-slate-50 text-slate-700 font-extrabold text-xs px-3.5 py-2 rounded-lg transition-colors border-none outline-none">
                 <SlidersHorizontal size={12} />
@@ -414,75 +413,24 @@ export default function WorkerDashboard() {
                   <div className="h-3 bg-slate-100 rounded w-1/2 mx-auto"></div>
                 </div>
               ) : feed.length === 0 ? (
-                // Fallback / Mockup Cards if no live DB matches are available
-                <>
-                  {/* Mock opportunity card 1 */}
-                  <div className="bg-white rounded-2xl border border-slate-200/80 p-6 flex flex-col md:flex-row justify-between gap-6 shadow-sm hover:border-slate-350 transition-colors">
-                    <div className="flex-1 space-y-4 text-left">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[9px] font-black text-rose-600 bg-rose-50 border border-rose-100/50 px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-0.5">
-                          <BadgeAlert size={8} /> Emergency Pipe Repair
-                        </span>
-                        <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                          Plumbing
-                        </span>
-                        <span className="text-[9px] text-slate-400 font-bold flex items-center gap-0.5 ml-1">
-                          <Clock size={10} /> 2 hours ago
-                        </span>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h3 className="text-base font-extrabold text-slate-800 leading-snug">Main Kitchen Leak Fix</h3>
-                        <div className="flex flex-wrap gap-4 text-[10px] text-slate-400 font-bold">
-                          <span className="flex items-center gap-0.5"><MapPin size={11} /> 3.2 km away</span>
-                          <span className="flex items-center gap-0.5">
-                            <User size={11} /> Posted by <strong className="text-slate-650 flex items-center gap-0.5 inline-flex">Rajesh <CheckCircle2 size={10} className="fill-emerald-500 text-white border-none" /></strong>
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-500 leading-relaxed max-w-2xl bg-slate-50 border border-slate-100 p-3 rounded-lg">
-                          &quot;Kitchen sink is leaking heavily and needs immediate attention. Water is starting to pool on the floor.&quot;
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="shrink-0 flex md:flex-col justify-end gap-2.5 md:pt-4">
-                      <button className="flex-1 md:flex-none border border-slate-200 hover:border-slate-350 hover:bg-slate-50 text-slate-700 font-extrabold text-xs px-5 py-3 rounded-lg transition-colors border-none outline-none">Decline</button>
-                      <button className="flex-1 md:flex-none bg-accent-600 hover:bg-accent-700 text-white font-extrabold text-xs px-5 py-3 rounded-lg shadow-sm transition-all border-none outline-none">Accept Job</button>
-                    </div>
+                <div className="bg-white rounded-2xl border border-slate-200/80 p-8 text-center space-y-4">
+                  <div className="w-14 h-14 mx-auto rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center">
+                    <HardHat size={24} className="text-slate-300" />
                   </div>
-
-                  {/* Mock opportunity card 2 */}
-                  <div className="bg-white rounded-2xl border border-slate-200/80 p-6 flex flex-col md:flex-row justify-between gap-6 shadow-sm hover:border-slate-350 transition-colors">
-                    <div className="flex-1 space-y-4 text-left">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                          Electrician
-                        </span>
-                        <span className="text-[9px] text-slate-400 font-bold flex items-center gap-0.5 ml-1">
-                          <Clock size={10} /> 5 hours ago
-                        </span>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h3 className="text-base font-extrabold text-slate-800 leading-snug">Light Fixture Installation</h3>
-                        <div className="flex flex-wrap gap-4 text-[10px] text-slate-400 font-bold">
-                          <span className="flex items-center gap-0.5"><MapPin size={11} /> 1.5 km away</span>
-                          <span className="flex items-center gap-0.5">
-                            <User size={11} /> Posted by <strong className="text-slate-650 flex items-center gap-0.5 inline-flex">Sarah <CheckCircle2 size={10} className="fill-emerald-500 text-white border-none" /></strong>
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-500 leading-relaxed max-w-2xl bg-slate-50 border border-slate-100 p-3 rounded-lg">
-                          &quot;Install 3 new pendant lights in a dining room. Fixtures are already purchased. Requires basic wiring check.&quot;
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="shrink-0 flex md:flex-col justify-end gap-2.5 md:pt-4">
-                      <button className="flex-1 md:flex-none border border-slate-200 hover:border-slate-350 hover:bg-slate-50 text-slate-700 font-extrabold text-xs px-5 py-3 rounded-lg transition-colors border-none outline-none">Decline</button>
-                      <button className="flex-1 md:flex-none bg-accent-600 hover:bg-accent-700 text-white font-extrabold text-xs px-5 py-3 rounded-lg shadow-sm transition-all border-none outline-none">Accept Job</button>
-                    </div>
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-extrabold text-slate-700">No job opportunities right now</h3>
+                    <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
+                      New job requests matching your skills will appear here in real-time. Stay available to get matched faster.
+                    </p>
                   </div>
-                </>
+                  <p className="text-[11px] text-slate-400 font-medium">
+                    Make sure your profile is complete and skills are up to date{' '}
+                    <Link href="/worker/profile" className="text-accent-600 hover:text-accent-700 font-bold hover:underline">
+                      in your Settings
+                    </Link>
+                    .
+                  </p>
+                </div>
               ) : (
                 feed.map((match) => {
                   const job = match.jobId;

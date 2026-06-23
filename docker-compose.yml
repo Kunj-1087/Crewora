@@ -14,6 +14,19 @@ services:
     ports:
       - "5432:5432"
 
+  db_test:
+    image: postgres:15-alpine
+    container_name: crewora-db-test
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: crewora_test
+      POSTGRES_USER: crewora
+      POSTGRES_PASSWORD: crewora
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+
   backend:
     build:
       context: .
@@ -41,7 +54,6 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost/api/v1}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost}
-      # Android APK configuration
       NEXT_PUBLIC_ANDROID_APK_URL: ${NEXT_PUBLIC_ANDROID_APK_URL:-http://localhost/uploads/crewora-app.apk}
       NEXT_PUBLIC_PLAY_STORE_URL: ${NEXT_PUBLIC_PLAY_STORE_URL:-}
       NEXT_PUBLIC_APP_VERSION: ${NEXT_PUBLIC_APP_VERSION:-1.0.0}

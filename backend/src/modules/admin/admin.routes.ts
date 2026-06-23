@@ -1,13 +1,14 @@
 import { Router } from 'express';
-import { requireAuth } from '../../middleware/requireAuth';
-import { validate } from '../../middleware/validate';
+import { authenticate, requireAdmin } from '../../middleware/auth.middleware';
+import { validate } from '../../middleware/validate.middleware';
 import { z } from 'zod';
 import * as adminService from './admin.service';
 
 const router = Router();
 
 // All admin routes require admin auth
-router.use(requireAuth('admin'));
+router.use(authenticate('admin'));
+router.use(requireAdmin);
 
 const pageQuery = z.object({
   page: z.string().default('1').transform(Number),

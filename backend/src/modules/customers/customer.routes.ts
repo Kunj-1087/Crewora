@@ -1,20 +1,30 @@
 import { Router } from 'express';
-import { requireAuth } from '../../middleware/requireAuth';
-import { validate } from '../../middleware/validate';
+import { authenticate } from '../../middleware/auth.middleware';
+import { validate } from '../../middleware/validate.middleware';
 import { z } from 'zod';
 import { prisma } from '../../lib/prisma';
 import { AppError } from '../../utils/AppError';
 
 const router = Router();
 
+/**
+ * Phone validation: strips non-digits via transform, then validates 10-15 digits.
+ */
+const phoneSchema = z
+  .string()
+  .transform((val) => val.replace(/\D/g, ''))
+  .pipe(
+    z.string().regex(/^\d{10,15}$/, 'Phone must be 10-15 digits (numbers only)')
+  );
+
 const updateProfileSchema = z.object({
-  name: z.string().min(2).max(100).optional(),
-  phone: z.string().min(10).max(15).optional(),
-  address: z.string().max(200).optional(),
+  name: z.string().min(2).max(100).trim().optional(),
+  phone: phoneSchema.optional(),
+  address: z.string().max(200).trim().optional(),
 });
 
 // Get own profile
-router.get('/me', requireAuth('customer'), async (req, res, next) => {
+router.get('/me', authenticate('customer'), async (req, res, next) => {
   try {
     const customer = await prisma.customer.findUnique({
       where: { id: req.user!.id },
@@ -27,7 +37,7 @@ router.get('/me', requireAuth('customer'), async (req, res, next) => {
 // Update own profile
 router.patch(
   '/me',
-  requireAuth('customer'),
+  authenticate('customer'),
   validate({ body: updateProfileSchema }),
   async (req, res, next) => {
     try {
@@ -44,7 +54,7 @@ router.patch(
 // Delete account (soft delete)
 router.delete(
   '/me',
-  requireAuth('customer'),
+  authenticate('customer'),
   validate({ body: z.object({ confirmation: z.literal('DELETE MY ACCOUNT') }) }),
   async (req, res, next) => {
     try {

@@ -61,38 +61,48 @@ export function errorHandler(
     return;
   }
 
-  // Prisma database errors
+  // ── Prisma database errors ──
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
     switch (err.code) {
+      case 'P2000': {
+        const column = (err.meta?.column_name as string) || 'column';
+        res.status(400).json({ success: false, message: `Value too long for ${column}.` });
+        return;
+      }
       case 'P2002': {
         const target = (err.meta?.target as string[])?.join(', ') || 'field';
         const msg = lang === 'gu'
           ? `આ ${target} સાથેનો રેકોર્ડ પહેલેથી જ અસ્તિત્વમાં છે.`
           : `A record with this ${target} already exists.`;
-        res.status(409).json({
-          success: false,
-          message: msg,
-        });
+        res.status(409).json({ success: false, message: msg });
         return;
       }
       case 'P2003': {
         const msg = lang === 'gu'
           ? 'અમાન્ય લિંક કરેલ રેકોર્ડ (ફોરેન કી મર્યાદા નિષ્ફળ).'
           : 'Invalid referenced record (foreign key constraint failed).';
-        res.status(400).json({
-          success: false,
-          message: msg,
-        });
+        res.status(400).json({ success: false, message: msg });
+        return;
+      }
+      case 'P2014': {
+        const msg = lang === 'gu'
+          ? 'આવશ્યક સંબંધનું ઉલ્લંઘન થયું છે.'
+          : 'Required relation violation.';
+        res.status(400).json({ success: false, message: msg });
+        return;
+      }
+      case 'P2024': {
+        const msg = lang === 'gu'
+          ? 'ડેટાબેઝ કનેક્શન પૂલનો સમય સમાપ્ત થયો. ફરી પ્રયાસ કરો.'
+          : 'Database connection pool timeout. Please retry.';
+        res.status(503).json({ success: false, message: msg });
         return;
       }
       case 'P2025': {
         const msg = lang === 'gu'
           ? 'રેકોર્ડ મળ્યો નથી.'
           : 'Record not found.';
-        res.status(404).json({
-          success: false,
-          message: msg,
-        });
+        res.status(404).json({ success: false, message: msg });
         return;
       }
       default:
@@ -104,25 +114,6 @@ export function errorHandler(
         });
         return;
     }
-  }
-
-  // Mongoose validation error
-  if (err.name === 'ValidationError') {
-    res.status(400).json({
-      success: false,
-      message: lang === 'gu' ? 'વેલિડેશન નિષ્ફળ ગયું' : 'Validation error',
-      errors: err.message,
-    });
-    return;
-  }
-
-  // Mongoose duplicate key error
-  if ((err as NodeJS.ErrnoException).code === '11000') {
-    res.status(409).json({
-      success: false,
-      message: lang === 'gu' ? 'આ મૂલ્ય સાથેનો રેકોર્ડ પહેલેથી જ અસ્તિત્વમાં છે' : 'A record with this value already exists',
-    });
-    return;
   }
 
   // JWT errors

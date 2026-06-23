@@ -1,14 +1,14 @@
 import { z } from 'zod';
 
 export const createJobSchema = z.object({
-  title: z.string().min(5, 'Title must be at least 5 characters').max(150),
-  description: z.string().min(20, 'Please provide a detailed description').max(2000),
+  title: z.string().min(5, 'Title must be at least 5 characters').max(150).trim(),
+  description: z.string().min(20, 'Please provide a detailed description').max(2000).trim(),
   tradeCategory: z.enum([
     'plumber', 'electrician', 'carpenter', 'painter',
     'welder', 'mason', 'hvac', 'tiler', 'roofer', 'other',
   ]),
   location: z.object({
-    address: z.string().min(5, 'Location address is required'),
+    address: z.string().min(5, 'Location address is required').trim(),
     coordinates: z.tuple([
       z.number().min(-180).max(180), // longitude
       z.number().min(-90).max(90),   // latitude
@@ -19,11 +19,12 @@ export const createJobSchema = z.object({
 });
 
 export const updateJobSchema = z.object({
-  title: z.string().min(5).max(150).optional(),
-  description: z.string().min(20).max(2000).optional(),
+  title: z.string().min(5).max(150).trim().optional(),
+  description: z.string().min(20).max(2000).trim().optional(),
   scheduledAt: z.string().datetime().optional(),
-  status: z.enum(['cancelled']).optional(), // customers can only cancel
-  cancellationReason: z.string().max(500).optional(),
+  status: z.enum(['matched', 'cancelled']).optional(),
+  assignedWorkerId: z.string().uuid().optional(),
+  cancellationReason: z.string().max(500).trim().optional(),
 });
 
 export const jobIdSchema = z.object({

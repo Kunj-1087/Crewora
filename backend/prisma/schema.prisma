@@ -32,6 +32,7 @@ model Customer {
   refreshTokenHash     String?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
+  deletedAt            DateTime?
   jobs                 Job[]
   reviews              Review[]
 }
@@ -55,8 +56,11 @@ model Worker {
   isActive                    Boolean   @default(true)
   languagePreference          String?   @map("language_preference")
   refreshTokenHash            String?
+  ratingAvg                   Float     @default(0)
+  totalReviews                Int       @default(0)
   createdAt                   DateTime  @default(now())
   updatedAt                   DateTime  @updatedAt
+  deletedAt                   DateTime?
   matches                     Match[]
   assignedJobs                Job[]     @relation("WorkerJobs")
   reviews                     Review[]
@@ -79,9 +83,11 @@ model Otp {
   code      String
   userType  String   // "customer" | "worker"
   expiresAt DateTime
+  isUsed    Boolean  @default(false)
   createdAt DateTime @default(now())
 
   @@index([phone])
+  @@index([phone, isUsed, expiresAt])
 }
 
 model Notification {
@@ -92,6 +98,10 @@ model Notification {
   link      String?
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+  deletedAt DateTime?
+
+  @@index([userId, isRead, createdAt(sort: Desc)])
+  @@index([isRead, userId])
 }
 
 model Job {
@@ -113,10 +123,16 @@ model Job {
   completedAt        DateTime?
   cancelledAt        DateTime?
   cancellationReason String?
+  city               String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
   matches            Match[]
   reviews            Review[]
+
+  @@index([customerId, status])
+  @@index([status, createdAt(sort: Desc)])
+  @@index([status])
 }
 
 model Match {
@@ -131,8 +147,10 @@ model Match {
   expiresAt   DateTime
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
 
   @@unique([jobId, workerId])
+  @@index([workerId, status])
 }
 
 model Message {
@@ -171,4 +189,6 @@ model Review {
   updatedAt  DateTime @updatedAt
 
   @@unique([jobId, reviewer])
+  @@index([workerId])
+  @@index([customerId, jobId])
 }

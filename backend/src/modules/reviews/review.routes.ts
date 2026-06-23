@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { requireAuth } from '../../middleware/requireAuth';
-import { validate } from '../../middleware/validate';
+import { authenticate } from '../../middleware/auth.middleware';
+import { validate } from '../../middleware/validate.middleware';
 import * as reviewController from './review.controller';
 import { z } from 'zod';
 
@@ -8,7 +8,7 @@ const router = Router();
 
 router.post(
   '/jobs/:jobId/review',
-  requireAuth('customer'),
+  authenticate('customer'),
   validate({
     params: z.object({ jobId: z.string().uuid() }),
     body: z.object({

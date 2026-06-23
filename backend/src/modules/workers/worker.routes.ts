@@ -1,9 +1,11 @@
 import { Router } from 'express';
-import { requireAuth } from '../../middleware/requireAuth';
-import { validate } from '../../middleware/validate';
+import { authenticate } from '../../middleware/auth.middleware';
+import { validate } from '../../middleware/validate.middleware';
+import { uploadRateLimiter } from '../../config/rateLimits';
 import { z } from 'zod';
 import { prisma } from '../../lib/prisma';
 import { AppError } from '../../utils/AppError';
+import { logger } from '../../utils/logger';
 import * as workerService from './worker.service';
 import multer from 'multer';
 import path from 'path';
@@ -64,7 +66,7 @@ router.get('/', validate({ query: workerDiscoveryQuerySchema }), async (req, res
 });
 
 // Worker: get own profile
-router.get('/me', requireAuth('worker'), async (req, res, next) => {
+router.get('/me', authenticate('worker'), async (req, res, next) => {
   try {
     const worker = await workerService.getWorkerProfile(req.user!.id);
 
@@ -102,7 +104,7 @@ router.get('/me', requireAuth('worker'), async (req, res, next) => {
 // Worker: update own profile
 router.patch(
   '/me',
-  requireAuth('worker'),
+  authenticate('worker'),
   validate({ body: workerService.updateWorkerProfileSchema }),
   async (req, res, next) => {
     try {
@@ -115,7 +117,7 @@ router.patch(
 // Worker: update availability
 router.patch(
   '/me/availability',
-  requireAuth('worker'),
+  authenticate('worker'),
   validate({ body: z.object({ availability: z.enum(['available', 'unavailable', 'on_a_job']) }) }),
   async (req, res, next) => {
     try {
@@ -225,7 +227,8 @@ const upload = multer({
 // Worker: upload and update own profile photo
 router.post(
   '/me/profile-photo',
-  requireAuth('worker'),
+  authenticate('worker'),
+  uploadRateLimiter,
   upload.single('photo'),
   async (req, res, next) => {
     try {
@@ -235,10 +238,29 @@ router.post(
 
       const photoUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
 
+      // Fetch old profile photo to clean up later
+      const existingWorker = await prisma.worker.findUnique({
+        where: { id: req.user!.id },
+        select: { profilePhoto: true },
+      });
+
       const worker = await prisma.worker.update({
         where: { id: req.user!.id },
         data: { profilePhoto: photoUrl }
       });
+
+      // Delete old profile photo file from disk
+      if (existingWorker?.profilePhoto) {
+        const oldFilename = existingWorker.profilePhoto.split('/').pop();
+        if (oldFilename) {
+          const oldPath = path.join(uploadDir, oldFilename);
+          fs.unlink(oldPath, (err) => {
+            if (err && err.code !== 'ENOENT') {
+              logger.error('Failed to delete old profile photo', { path: oldPath, error: err });
+            }
+          });
+        }
+      }
 
       res.json({
         success: true,
@@ -283,7 +305,8 @@ const uploadPortfolio = multer({
 // Worker: add portfolio item
 router.post(
   '/me/portfolio',
-  requireAuth('worker'),
+  authenticate('worker'),
+  uploadRateLimiter,
   uploadPortfolio.single('photo'),
   async (req, res, next) => {
     try {
@@ -312,7 +335,8 @@ router.post(
 // Worker: delete portfolio item
 router.delete(
   '/me/portfolio/:itemId',
-  requireAuth('worker'),
+  authenticate('worker'),
+  validate({ params: z.object({ itemId: z.string().uuid('Portfolio item ID must be a valid UUID') }) }),
   async (req, res, next) => {
     try {
       const result = await workerService.removePortfolioItem(req.user!.id, req.params.itemId);

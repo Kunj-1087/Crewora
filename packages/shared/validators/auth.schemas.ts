@@ -1,18 +1,27 @@
+/**
+ * Shared phone validation: strips non-digits via transform, then validates 10-15 digits.
+ * Accepts +91, spaces, dashes — all cleaned before validation.
+ */
+const phoneSchema = z
+  .string()
+  .transform((val) => val.replace(/\D/g, ''))
+  .pipe(
+    z.string().regex(/^\d{10,15}$/, 'Phone must be 10-15 digits (numbers only)')
+  );
+
 import { z } from 'zod';
 
 export const sendOtpSchema = z.object({
-  phone: z.string().min(10, 'Phone number must be at least 10 digits').max(15),
-});
-
-export const customerRegisterSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters').max(100),
-  phone: z.string().min(10, 'Phone number must be at least 10 digits').max(15),
+  phone: phoneSchema,
+});export const customerRegisterSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters').max(100).trim(),
+  phone: phoneSchema,
   otp: z.string().length(6, 'OTP must be exactly 6 digits'),
 });
 
 export const workerRegisterSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters').max(100),
-  phone: z.string().min(10, 'Phone number must be at least 10 digits').max(15),
+  name: z.string().min(2, 'Name must be at least 2 characters').max(100).trim(),
+  phone: phoneSchema,
   otp: z.string().length(6, 'OTP must be exactly 6 digits'),
   tradeCategories: z
     .array(
@@ -22,11 +31,11 @@ export const workerRegisterSchema = z.object({
       ])
     )
     .min(1, 'At least one trade category is required'),
-  city: z.string().min(2, 'City is required'),
+  city: z.string().min(2, 'City is required').trim(),
 });
 
 export const loginSchema = z.object({
-  phone: z.string().min(10, 'Phone number must be at least 10 digits').max(15),
+  phone: phoneSchema,
   otp: z.string().length(6, 'OTP must be exactly 6 digits'),
 });
 

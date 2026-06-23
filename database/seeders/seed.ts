@@ -30,24 +30,24 @@ async function main() {
   });
 
   // 2. Seed Customers
-  const customerJohn = await prisma.customer.create({
+  const customerRahul = await prisma.customer.create({
     data: {
-      name: 'John Doe',
+      name: 'Rahul Sharma',
       phone: '9876543210',
-      address: '123 Market St, San Francisco, CA',
-      latitude: 37.7749,
-      longitude: -122.4194,
+      address: 'Andheri West, Mumbai, Maharashtra',
+      latitude: 19.1364,
+      longitude: 72.8296,
       isVerified: true,
     },
   });
 
   await prisma.customer.create({
     data: {
-      name: 'Jane Smith',
+      name: 'Priya Patel',
       phone: '8765432109',
-      address: '456 Washington St, Boston, MA',
-      latitude: 42.3601,
-      longitude: -71.0589,
+      address: 'Navrangpura, Ahmedabad, Gujarat',
+      latitude: 23.0321,
+      longitude: 72.5580,
       isVerified: true,
     },
   });
@@ -55,15 +55,15 @@ async function main() {
   // 3. Seed Workers
   await prisma.worker.create({
     data: {
-      name: 'Sarah Jenkins',
+      name: 'Rajesh Kumar',
       phone: '7654321098',
       tradeCategories: ['carpenter'],
       bio: 'Certified Master Carpenter specialized in custom furniture, cabinetry, framing, and premium wood finishing.',
       experienceYears: 8,
-      city: 'San Francisco',
+      city: 'Mumbai',
       serviceRadius: 20,
-      latitude: 37.7749,
-      longitude: -122.4194,
+      latitude: 19.1364,
+      longitude: 72.8296,
       profilePhoto: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=300',
       availability: 'available',
       verificationStatus: 'approved',
@@ -72,15 +72,15 @@ async function main() {
 
   await prisma.worker.create({
     data: {
-      name: 'David Chen',
+      name: 'Vikram Singh',
       phone: '6543210987',
       tradeCategories: ['electrician', 'hvac'],
       bio: 'Master Electrician specialized in smart home installations and commercial wiring upgrades.',
       experienceYears: 10,
-      city: 'Boston',
+      city: 'Ahmedabad',
       serviceRadius: 15,
-      latitude: 42.3601,
-      longitude: -71.0589,
+      latitude: 23.0321,
+      longitude: 72.5580,
       profilePhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=300',
       availability: 'available',
       verificationStatus: 'approved',
@@ -90,13 +90,13 @@ async function main() {
   // 4. Seed Job
   await prisma.job.create({
     data: {
-      customerId: customerJohn.id,
+      customerId: customerRahul.id,
       title: 'Wooden Cabinet Repair',
       description: 'Need help fixing a broken cabinet door and sanding the wooden surfaces in the kitchen.',
       tradeCategory: 'carpenter',
-      address: '123 Market St, San Francisco, CA',
-      latitude: 37.7749,
-      longitude: -122.4194,
+      address: 'Andheri West, Mumbai, Maharashtra',
+      latitude: 19.1364,
+      longitude: 72.8296,
       urgency: 'asap',
       status: 'open',
     },

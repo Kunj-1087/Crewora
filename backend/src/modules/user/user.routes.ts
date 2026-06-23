@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { requireAuth } from '../../middleware/requireAuth';
-import { validate } from '../../middleware/validate';
+import { authenticate } from '../../middleware/auth.middleware';
+import { validate } from '../../middleware/validate.middleware';
 import { z } from 'zod';
 import { prisma } from '../../lib/prisma';
 import { AppError } from '../../utils/AppError';
@@ -15,7 +15,7 @@ const languageSchema = z.object({
 });
 
 // GET /user/language
-router.get('/language', requireAuth('customer', 'worker'), async (req, res, next) => {
+router.get('/language', authenticate('customer', 'worker'), async (req, res, next) => {
   try {
     const userId = req.user!.id;
     const userType = req.user!.type;
@@ -53,7 +53,7 @@ router.get('/language', requireAuth('customer', 'worker'), async (req, res, next
 // POST /user/language
 router.post(
   '/language',
-  requireAuth('customer', 'worker'),
+  authenticate('customer', 'worker'),
   validate({ body: languageSchema }),
   async (req, res, next) => {
     try {

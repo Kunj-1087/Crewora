@@ -2,7 +2,6 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Button } from '@crewora/ui';
 import { CheckCircle, DollarSign, Smartphone, MapPin, Briefcase, UserCheck, ShieldCheck, ArrowRight } from 'lucide-react';
 
 const BENEFITS = [
@@ -54,9 +53,9 @@ export default function ForWorkersPage() {
             
             <div className="pt-2">
               <Link href="/worker/register">
-                <Button size="lg" className="px-8 py-4 bg-accent-600 hover:bg-accent-700 text-white font-extrabold text-sm rounded-lg shadow-md hover:shadow-lg transition-all active:scale-98">
+                <button className="px-8 py-4 bg-accent-600 hover:bg-accent-700 text-white font-extrabold text-sm rounded-lg shadow-md hover:shadow-lg transition-all active:scale-98 inline-flex items-center justify-center">
                   Join as Crew
-                </Button>
+                </button>
               </Link>
             </div>
           </div>
@@ -151,9 +150,9 @@ export default function ForWorkersPage() {
             
             <div className="pt-2">
               <Link href="/worker/register">
-                <Button size="lg" className="w-full sm:w-auto bg-white hover:bg-slate-50 text-accent-700 font-extrabold text-sm px-8 py-4 rounded-xl shadow-md border-none outline-none">
+                <button className="w-full sm:w-auto bg-white hover:bg-slate-50 text-accent-600 font-extrabold text-sm px-8 py-4 rounded-xl shadow-md border-none active:scale-98 inline-flex items-center justify-center">
                   Join as Crew Now
-                </Button>
+                </button>
               </Link>
             </div>
           </div>

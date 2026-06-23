@@ -23,6 +23,7 @@ export default function WorkerDashboard() {
 
   const [feed, setFeed] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('pending');
   const [showProfileNotice, setShowProfileNotice] = useState(true);
   
@@ -31,6 +32,7 @@ export default function WorkerDashboard() {
   const [actioningMatchId, setActioningMatchId] = useState<string | null>(null);
   
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
 
   // Listen for real-time invites via Socket.io
   useEffect(() => {
@@ -85,6 +87,7 @@ export default function WorkerDashboard() {
   const fetchFeed = useCallback(async (statusTab: TabType) => {
     if (!user || user.role !== 'worker') return;
     setLoading(true);
+    setError(null);
     try {
       const { data } = await apiClient.get('/jobs/worker/feed', {
         params: { status: statusTab }
@@ -92,6 +95,7 @@ export default function WorkerDashboard() {
       setFeed(data.data.jobs || []);
     } catch (err: any) {
       console.error('Failed to fetch worker feed:', err);
+      setError(err?.response?.data?.message || 'Could not fetch your jobs feed.');
     } finally {
       setLoading(false);
     }
@@ -139,9 +143,22 @@ export default function WorkerDashboard() {
     }
   };
 
+  const handleWorkDoneClick = (jobId: string) => {
+    setSelectedJobId(jobId);
+    setIsFeedbackOpen(true);
+  };
+
   const handleFeedbackSubmit = async (rating: number, comment: string) => {
-    // Note: feedback logic can be implemented here if needed for workers to rate customers
-    console.log('Feedback submitted:', rating, comment);
+    if (!selectedJobId) return;
+    try {
+      await apiClient.post(`/jobs/${selectedJobId}/complete`, { rating, comment });
+      setIsFeedbackOpen(false);
+      setSelectedJobId(null);
+      fetchFeed(activeTab);
+    } catch (err: any) {
+      console.error('Failed to submit feedback:', err);
+      alert(err?.response?.data?.message || 'Could not submit feedback.');
+    }
   };
 
   const handleLogout = async () => {
@@ -315,7 +332,7 @@ export default function WorkerDashboard() {
                 <div className="flex justify-between items-end border-b border-slate-100 pb-6">
                   <div>
                     <h2 className="text-2xl font-black text-slate-900 tracking-tight">Job Opportunities Near You</h2>
-                    <p className="text-sm text-slate-500 mt-1 font-medium">Based on your skills and location ({user.city || 'Toronto, ON'})</p>
+                    <p className="text-sm text-slate-500 mt-1 font-medium">Based on your skills and location ({user.city || 'Mumbai'})</p>
                   </div>
                   <button className="flex items-center gap-2 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-sm px-5 py-2.5 rounded-xl transition-all shadow-sm">
                     <SlidersHorizontal size={16} />
@@ -326,80 +343,46 @@ export default function WorkerDashboard() {
                 {/* List */}
                 <div className="grid grid-cols-1 gap-6">
                   
-                  {loading ? (
+                  {error ? (
+                    <div className="bg-white rounded-[2rem] border border-red-100 p-12 text-center space-y-6">
+                      <div className="w-20 h-20 mx-auto rounded-full bg-red-50 border border-red-100 flex items-center justify-center">
+                        <span className="text-2xl">⚠️</span>
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="text-lg font-black text-slate-700">Could not load opportunities</h3>
+                        <p className="text-sm text-slate-400 max-w-sm mx-auto">{error}</p>
+                      </div>
+                      <button
+                        onClick={() => fetchFeed(activeTab)}
+                        className="bg-[#2563eb] hover:bg-blue-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-all shadow-sm"
+                      >
+                        Try Again
+                      </button>
+                    </div>
+                  ) : loading ? (
                     <div className="bg-slate-50 border border-slate-100 rounded-3xl p-12 text-center animate-pulse space-y-4">
                       <div className="h-6 bg-slate-200 rounded-full w-48 mx-auto"></div>
                       <div className="h-4 bg-slate-200 rounded-full w-64 mx-auto"></div>
                     </div>
                   ) : feed.length === 0 ? (
-                    <>
-                      {/* Mock opportunity card 1 */}
-                      <div className="bg-white rounded-[2rem] border border-slate-200 p-8 flex flex-col md:flex-row justify-between gap-8 shadow-sm hover:shadow-md transition-all">
-                        <div className="flex-1 space-y-6">
-                          <div className="flex flex-wrap items-center gap-3">
-                            <span className="text-[10px] font-black text-rose-600 bg-rose-50 border border-rose-100 px-3 py-1.5 rounded-full uppercase tracking-widest flex items-center gap-1">
-                              <span className="text-rose-500">⚡</span> Urgent
-                            </span>
-                            <span className="text-[10px] font-black text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-full uppercase tracking-widest">
-                              Plumbing
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1 ml-1 uppercase tracking-widest">
-                              <Clock size={12} /> 2 hours ago
-                            </span>
-                          </div>
-                          
-                          <div className="space-y-4">
-                            <h3 className="text-xl font-black text-slate-900 leading-tight">Main Kitchen Leak Fix</h3>
-                            <div className="flex flex-wrap gap-6 text-[11px] text-slate-500 font-bold uppercase tracking-wider">
-                              <span className="flex items-center gap-1.5"><MapPin size={14} className="text-[#2563eb]" /> 3.2 km away</span>
-                              <span className="flex items-center gap-1.5">
-                                <User size={14} className="text-[#2563eb]" /> Rajesh <CheckCircle2 size={12} className="fill-blue-500 text-white" />
-                              </span>
-                            </div>
-                            <div className="text-sm text-slate-700 leading-relaxed bg-blue-50/50 border-l-4 border-[#2563eb] p-6 rounded-r-2xl italic font-medium">
-                              &quot;Kitchen sink is leaking heavily and needs immediate attention. Water is starting to pool on the floor.&quot;
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="shrink-0 flex flex-col justify-center gap-3 min-w-[160px]">
-                          <button className="bg-[#2563eb] hover:bg-blue-700 text-white font-bold text-sm py-4 rounded-2xl shadow-lg shadow-blue-100 transition-all active:scale-95">Accept Job</button>
-                          <button className="border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-500 font-bold text-sm py-4 rounded-2xl transition-all">Decline</button>
-                        </div>
+                    <div className="bg-white rounded-[2rem] border border-slate-200 p-12 text-center space-y-6">
+                      <div className="w-20 h-20 mx-auto rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center">
+                        <HardHat size={36} className="text-slate-300" />
                       </div>
-
-                      {/* Mock opportunity card 2 */}
-                      <div className="bg-white rounded-[2rem] border border-slate-200 p-8 flex flex-col md:flex-row justify-between gap-8 shadow-sm hover:shadow-md transition-all">
-                        <div className="flex-1 space-y-6">
-                          <div className="flex flex-wrap items-center gap-3">
-                            <span className="text-[10px] font-black text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-full uppercase tracking-widest">
-                              Electrician
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1 ml-1 uppercase tracking-widest">
-                              <Clock size={12} /> 5 hours ago
-                            </span>
-                          </div>
-                          
-                          <div className="space-y-4">
-                            <h3 className="text-xl font-black text-slate-900 leading-tight">Light Fixture Installation</h3>
-                            <div className="flex flex-wrap gap-6 text-[11px] text-slate-500 font-bold uppercase tracking-wider">
-                              <span className="flex items-center gap-1.5"><MapPin size={14} className="text-[#2563eb]" /> 1.5 km away</span>
-                              <span className="flex items-center gap-1.5">
-                                <User size={14} className="text-[#2563eb]" /> Sarah <CheckCircle2 size={12} className="fill-blue-500 text-white" />
-                              </span>
-                            </div>
-                            <div className="text-sm text-slate-700 leading-relaxed bg-blue-50/50 border-l-4 border-[#2563eb] p-6 rounded-r-2xl italic font-medium">
-                              &quot;Install 3 new pendant lights in a dining room. Fixtures are already purchased. Requires basic wiring check.&quot;
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="shrink-0 flex flex-col justify-center gap-3 min-w-[160px]">
-                          <button className="bg-[#2563eb] hover:bg-blue-700 text-white font-bold text-sm py-4 rounded-2xl shadow-lg shadow-blue-100 transition-all active:scale-95">Accept Job</button>
-                          <button className="border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-500 font-bold text-sm py-4 rounded-2xl transition-all">Decline</button>
-                        </div>
+                      <div className="space-y-2">
+                        <h3 className="text-lg font-black text-slate-700">No job opportunities right now</h3>
+                        <p className="text-sm text-slate-400 max-w-sm mx-auto leading-relaxed">
+                          New job requests matching your skills will appear here in real-time. Stay available to get matched faster.
+                        </p>
                       </div>
-                    </>
+                      <p className="text-xs text-slate-400">
+                        Make sure your profile is complete and skills are up to date{' '}
+                        <Link href="/worker/profile" className="text-[#2563eb] hover:underline font-bold">
+                          in your Settings
+                        </Link>
+                        .
+                      </p>
+                    </div>
                   ) : (
                     feed.map((match) => {
                       const job = match.jobId;
@@ -440,20 +423,41 @@ export default function WorkerDashboard() {
                           </div>
 
                           <div className="shrink-0 flex flex-col justify-center gap-3 min-w-[160px]">
-                            <button 
-                              onClick={() => handleMatchResponse(match.id, 'accept')}
-                              disabled={actioningMatchId === match.id}
-                              className="bg-[#2563eb] hover:bg-blue-700 text-white font-bold text-sm py-4 rounded-2xl shadow-lg shadow-blue-100 transition-all active:scale-95 disabled:opacity-50"
-                            >
-                              {actioningMatchId === match.id ? 'Processing...' : 'Accept Job'}
-                            </button>
-                            <button 
-                              onClick={() => handleMatchResponse(match.id, 'decline')}
-                              disabled={actioningMatchId === match.id}
-                              className="border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-500 font-bold text-sm py-4 rounded-2xl transition-all disabled:opacity-50"
-                            >
-                              Decline
-                            </button>
+                            {activeTab === 'pending' ? (
+                              <>
+                                <button 
+                                  onClick={() => handleMatchResponse(match.id, 'accept')}
+                                  disabled={actioningMatchId === match.id}
+                                  className="bg-[#2563eb] hover:bg-blue-700 text-white font-bold text-sm py-4 rounded-2xl shadow-lg shadow-blue-100 transition-all active:scale-95 disabled:opacity-50"
+                                >
+                                  {actioningMatchId === match.id ? 'Processing...' : 'Accept Job'}
+                                </button>
+                                <button 
+                                  onClick={() => handleMatchResponse(match.id, 'decline')}
+                                  disabled={actioningMatchId === match.id}
+                                  className="border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-500 font-bold text-sm py-4 rounded-2xl transition-all disabled:opacity-50"
+                                >
+                                  Decline
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => handleWorkDoneClick(job.id)}
+                                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm py-4 rounded-2xl shadow-lg shadow-emerald-100 transition-all active:scale-95"
+                                >
+                                  Work Done
+                                </button>
+                                {job.customer?.phone && (
+                                  <a
+                                    href={`tel:${job.customer.phone}`}
+                                    className="border border-slate-200 hover:border-slate-300 text-slate-500 font-bold text-sm py-4 rounded-2xl transition-all text-center hover:bg-slate-50"
+                                  >
+                                    Call Customer
+                                  </a>
+                                )}
+                              </>
+                            )}
                           </div>
                         </div>
                       );

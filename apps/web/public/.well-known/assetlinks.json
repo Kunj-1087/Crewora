@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.crewora.app",
+      "sha256_cert_fingerprints": [
+        "14:6D:E9:83:C5:E9:9D:02:47:64:1B:07:BC:D5:79:FA:A5:AA:58:80:C4:4E:A8:12:F3:11:83:8B:4F:95:C7:A6"
+      ]
+    }
+  }
+]

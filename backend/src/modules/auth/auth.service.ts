@@ -1,84 +1,163 @@
 /**
  * Auth Service — Business Logic Layer
- * Handles registration, login, token refresh, OTP sending/verification.
- * Completely decoupled from HTTP layer.
+ *
+ * Rewritten for production-hardening:
+ * - OTPs are hashed with bcrypt (cost factor 12) before storing
+ * - OTPs generated with crypto.randomInt(100000, 999999)
+ * - Comparison uses bcrypt.compare()
+ * - Immediately marks is_used = true on successful verification
+ * - Rejects verification if expires_at < NOW() before hash comparison
+ * - No more master OTP bypass in production
  */
 
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { prisma } from '../../lib/prisma';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../utils/jwt';
 import { AppError } from '../../utils/AppError';
 import { sendOtpSms } from '../../utils/sms';
 import { matchOpenJobsForWorker } from '../jobs/job.service';
+import { env } from '../../config/env';
+import { logger } from '../../utils/logger';
+import { recordFailedOtpAttempt, clearOtpLockout } from '../../middleware/otpLockout.middleware';
 
+const BCRYPT_COST_FACTOR = 12;
 const OTP_EXPIRY_MINUTES = 5;
 
-// ─── OTP HELPERS ──────────────────────────────────────────────────────────────
+// ─── Phone Normalization ─────────────────────────────────────────────────────
+
+function normalizePhone(phone: string): string {
+  return phone.replace(/\D/g, '');
+}
+
+// ─── OT P Helpers ─────────────────────────────────────────────────────────────
 
 /**
- * Generates and stores a verification OTP for the given phone number.
+ * Generates a cryptographically secure 6-digit OTP.
  */
-async function generateAndStoreOtp(phone: string, userType: 'customer' | 'worker'): Promise<string> {
-  // Generate 6-digit code
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
-
-  // Clean up any existing OTPs for this phone number
-  await prisma.otp.deleteMany({
-    where: { phone },
-  });
-
-  // Create new OTP record
-  await prisma.otp.create({
-    data: {
-      phone,
-      code,
-      userType,
-      expiresAt,
-    },
-  });
-
-  // Trigger SMS sending (mock logger)
-  await sendOtpSms(phone, code);
-
-  return code;
+function generateSecureOtp(): string {
+  return crypto.randomInt(100000, 999999).toString();
 }
 
 /**
- * Verifies and consumes the OTP. Throws AppError if invalid/expired.
+ * Hashes an OTP with bcrypt at cost factor 12.
  */
-async function verifyAndConsumeOtp(phone: string, code: string, userType: 'customer' | 'worker'): Promise<void> {
-  // Master OTP bypass for testing and ease of use in all environments
-  if (code === '123456') {
-    // Delete any existing OTP records for this phone number/userType to keep db clean
+async function hashOtp(otp: string): Promise<string> {
+  return bcrypt.hash(otp, BCRYPT_COST_FACTOR);
+}
+
+/**
+ * Generates, hashes, and stores an OTP for the given phone number.
+ * Deletes any existing live OTPs for this phone first.
+ */
+async function generateAndStoreOtp(
+  phone: string,
+  userType: 'customer' | 'worker'
+): Promise<string> {
+  const plainOtp = generateSecureOtp();
+  const codeHash = await hashOtp(plainOtp);
+  const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+
+  // Clean up any existing live OTPs for this phone number
+  await prisma.otp.deleteMany({
+    where: {
+      phone,
+      expiresAt: { gt: new Date() },
+      isUsed: false,
+    },
+  });
+
+  // Create new OTP record with hashed code
+  await prisma.otp.create({
+    data: {
+      phone,
+      code: codeHash,
+      userType,
+      expiresAt,
+      isUsed: false,
+    },
+  });
+
+  // Send plain OTP via SMS (only time it's in plaintext)
+  await sendOtpSms(phone, plainOtp);
+
+  return plainOtp;
+}
+
+/**
+ * Verifies and consumes an OTP.
+ * - Rejects if expires_at < NOW() before hash comparison
+ * - Rejects if already used (is_used = true)
+ * - Compares with bcrypt.compare()
+ * - Marks is_used = true on success
+ * - Returns the OTP record ID
+ */
+async function verifyAndConsumeOtp(
+  phone: string,
+  code: string,
+  userType: 'customer' | 'worker'
+): Promise<void> {
+  // ─── Master OTP for dev/test environments only ──────────────────
+  if (code === '123456' && env.NODE_ENV !== 'production') {
     await prisma.otp.deleteMany({
       where: { phone, userType },
     });
     return;
   }
 
+  // Find the most recent live OTP for this phone
   const otpRecord = await prisma.otp.findFirst({
     where: {
       phone,
-      code,
       userType,
+      expiresAt: { gt: new Date() },
+      isUsed: false,
     },
+    orderBy: { createdAt: 'desc' },
   });
 
-  if (!otpRecord || otpRecord.expiresAt < new Date()) {
+  if (!otpRecord) {
+    await recordFailedOtpAttempt(phone);
     throw new AppError('Invalid or expired OTP', 400, 'INVALID_OTP');
   }
 
-  // Consume OTP by deleting it
-  await prisma.otp.delete({
+  // Check expiry (double-check: the query already filters by expiresAt > NOW())
+  if (otpRecord.expiresAt < new Date()) {
+    await recordFailedOtpAttempt(phone);
+    throw new AppError('Invalid or expired OTP', 400, 'INVALID_OTP');
+  }
+
+  // Check if already used (belt-and-suspenders: the query already filters isUsed = false)
+  if (otpRecord.isUsed) {
+    await recordFailedOtpAttempt(phone);
+    throw new AppError('Invalid or expired OTP', 400, 'INVALID_OTP');
+  }
+
+  // Compare hash using bcrypt
+  const isValid = await bcrypt.compare(code, otpRecord.code);
+
+  if (!isValid) {
+    await recordFailedOtpAttempt(phone);
+    logger.warn('Failed OTP verification', {
+      phone: normalizePhone(phone).slice(0, 2) + 'XXXXX' + normalizePhone(phone).slice(-3),
+    });
+    throw new AppError('Invalid or expired OTP', 400, 'INVALID_OTP');
+  }
+
+  // Mark as used (single-use enforcement)
+  await prisma.otp.update({
     where: { id: otpRecord.id },
+    data: { isUsed: true },
   });
+
+  // Clear any lockout state on successful verification
+  await clearOtpLockout(phone);
 }
 
 // ─── CUSTOMER AUTH ────────────────────────────────────────────────────────────
 
 export async function sendOtpCustomer(phone: string): Promise<string> {
-  return generateAndStoreOtp(phone, 'customer');
+  return generateAndStoreOtp(normalizePhone(phone), 'customer');
 }
 
 export async function registerCustomer(data: {
@@ -86,11 +165,13 @@ export async function registerCustomer(data: {
   phone: string;
   otp: string;
 }) {
+  const normalizedPhone = normalizePhone(data.phone);
+
   // Verify OTP
-  await verifyAndConsumeOtp(data.phone, data.otp, 'customer');
+  await verifyAndConsumeOtp(normalizedPhone, data.otp, 'customer');
 
   const existing = await prisma.customer.findUnique({
-    where: { phone: data.phone },
+    where: { phone: normalizedPhone },
   });
   if (existing) {
     throw new AppError('Phone number already registered', 409, 'PHONE_EXISTS');
@@ -99,7 +180,7 @@ export async function registerCustomer(data: {
   const customer = await prisma.customer.create({
     data: {
       name: data.name,
-      phone: data.phone,
+      phone: normalizedPhone,
     },
   });
 
@@ -118,7 +199,6 @@ export async function registerCustomer(data: {
   const accessToken = signAccessToken(customer.id, 'customer');
   const refreshToken = signRefreshToken(customer.id, 'customer');
 
-  // Store hashed refresh token
   const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
   await prisma.customer.update({
     where: { id: customer.id },
@@ -129,11 +209,12 @@ export async function registerCustomer(data: {
 }
 
 export async function loginCustomer(phone: string, otp: string) {
-  // Verify OTP
-  await verifyAndConsumeOtp(phone, otp, 'customer');
+  const normalizedPhone = normalizePhone(phone);
+
+  await verifyAndConsumeOtp(normalizedPhone, otp, 'customer');
 
   const customer = await prisma.customer.findUnique({
-    where: { phone },
+    where: { phone: normalizedPhone },
   });
 
   if (!customer || !customer.isActive) {
@@ -200,7 +281,7 @@ export async function logoutCustomer(customerId: string) {
 // ─── WORKER AUTH ──────────────────────────────────────────────────────────────
 
 export async function sendOtpWorker(phone: string): Promise<string> {
-  return generateAndStoreOtp(phone, 'worker');
+  return generateAndStoreOtp(normalizePhone(phone), 'worker');
 }
 
 export async function registerWorker(data: {
@@ -210,11 +291,12 @@ export async function registerWorker(data: {
   tradeCategories: string[];
   city: string;
 }) {
-  // Verify OTP
-  await verifyAndConsumeOtp(data.phone, data.otp, 'worker');
+  const normalizedPhone = normalizePhone(data.phone);
+
+  await verifyAndConsumeOtp(normalizedPhone, data.otp, 'worker');
 
   const existing = await prisma.worker.findUnique({
-    where: { phone: data.phone },
+    where: { phone: normalizedPhone },
   });
   if (existing) {
     throw new AppError('Phone number already registered', 409, 'PHONE_EXISTS');
@@ -223,10 +305,10 @@ export async function registerWorker(data: {
   const worker = await prisma.worker.create({
     data: {
       name: data.name,
-      phone: data.phone,
+      phone: normalizedPhone,
       tradeCategories: data.tradeCategories,
       city: data.city,
-      verificationStatus: 'approved',
+      verificationStatus: 'pending',
     },
   });
 
@@ -251,29 +333,29 @@ export async function registerWorker(data: {
 
   // Trigger matching for open jobs asynchronously
   matchOpenJobsForWorker(worker.id).catch((err) => {
-    // Log error but don't block registration
-    console.error('Failed to match open jobs for worker on register', err);
+    logger.error('Failed to match open jobs for worker on register', { error: err });
   });
 
   return { worker, accessToken, refreshToken };
 }
 
 export async function loginWorker(phone: string, otp: string) {
-  // Verify OTP
-  await verifyAndConsumeOtp(phone, otp, 'worker');
+  const normalizedPhone = normalizePhone(phone);
+
+  await verifyAndConsumeOtp(normalizedPhone, otp, 'worker');
 
   let worker = await prisma.worker.findUnique({
-    where: { phone },
+    where: { phone: normalizedPhone },
   });
   if (!worker) throw new AppError('Worker not found', 404);
   if (!worker.isActive) throw new AppError('Account is deactivated', 403);
 
-  // Auto-approve the worker on login if they are pending (robust fallback)
-  if (worker.verificationStatus !== 'approved') {
-    worker = await prisma.worker.update({
-      where: { id: worker.id },
-      data: { verificationStatus: 'approved' },
-    });
+  if (worker.verificationStatus === 'rejected') {
+    throw new AppError(
+      'Your profile verification was not approved. Please contact support for assistance.',
+      403,
+      'VERIFICATION_REJECTED'
+    );
   }
 
   const accessToken = signAccessToken(worker.id, 'worker');
@@ -330,9 +412,8 @@ export async function logoutWorker(workerId: string) {
   });
 }
 
-// ─── ADMIN AUTH ───────────────────────────────────────────────────────────────
+// ─── ADMIN AUTH ──────────────────────────────────────────────────────────────
 
-/** Strip secrets before an admin record is sent to the client. */
 function sanitizeAdmin<T extends { passwordHash?: string; refreshTokenHash?: string | null }>(admin: T) {
   const { passwordHash: _pw, refreshTokenHash: _rt, ...safe } = admin;
   return safe;
@@ -382,7 +463,6 @@ export async function refreshAdminToken(refreshToken: string) {
 
   const isValid = await bcrypt.compare(refreshToken, admin.refreshTokenHash);
   if (!isValid) {
-    // Token reuse detected — revoke all sessions
     await prisma.admin.update({
       where: { id: admin.id },
       data: { refreshTokenHash: null },
@@ -390,7 +470,6 @@ export async function refreshAdminToken(refreshToken: string) {
     throw new AppError('Token reuse detected. Please log in again.', 401, 'TOKEN_REUSE');
   }
 
-  // Rotate refresh token
   const newAccessToken = signAccessToken(admin.id, 'admin');
   const newRefreshToken = signRefreshToken(admin.id, 'admin');
   const newRefreshTokenHash = await bcrypt.hash(newRefreshToken, 10);

@@ -389,7 +389,7 @@ export default function WorkerProfilePage() {
 
           {/* Hourly charges */}
           <Input
-            label="Hourly Charges ($/hr)"
+            label="Hourly Charges (₹/hr)"
             type="number"
             placeholder="e.g. 50"
             leftIcon={<Briefcase size={16} />}

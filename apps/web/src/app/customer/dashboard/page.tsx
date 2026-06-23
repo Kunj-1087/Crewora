@@ -287,52 +287,22 @@ export default function CustomerDashboard() {
                       <div className="h-4 bg-slate-200 rounded-full w-32 mx-auto"></div>
                     </div>
                   ) : jobs.length === 0 ? (
-                    <>
-                      {/* Plumbing Active Card Mock */}
-                      <div 
-                        onClick={() => router.push('/customer/jobs')}
-                        className="bg-white rounded-[2rem] border border-slate-200 p-6 space-y-6 hover:shadow-md transition-all shadow-sm cursor-pointer group"
-                      >
-                        <div className="flex justify-between items-start">
-                          <span className="text-[10px] font-black text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1 rounded-full uppercase tracking-widest">
-                            Plumbing
-                          </span>
-                          <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full uppercase tracking-widest flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            <span>In Progress</span>
-                          </span>
-                        </div>
-                        <div className="space-y-2">
-                          <h3 className="font-black text-slate-900 text-lg group-hover:text-[#2563eb] transition-colors">Leaky Faucet in Kitchen</h3>
-                          <div className="flex items-center gap-5 text-[11px] text-slate-500 font-bold uppercase tracking-wider">
-                            <span className="flex items-center gap-1.5"><MapPin size={14} className="text-[#2563eb]" /> Seattle, WA</span>
-                            <span className="flex items-center gap-1.5"><Calendar size={14} className="text-[#2563eb]" /> 2 days ago</span>
-                          </div>
-                        </div>
+                    <div className="col-span-2 bg-white rounded-[2rem] border border-slate-200 p-12 text-center shadow-sm">
+                      <div className="w-16 h-16 rounded-full bg-blue-50 text-[#2563eb] flex items-center justify-center mx-auto mb-4">
+                        <Briefcase size={28} />
                       </div>
-
-                      {/* Electrical Active Card Mock */}
-                      <div 
-                        onClick={() => router.push('/customer/jobs')}
-                        className="bg-white rounded-[2rem] border border-slate-200 p-6 space-y-6 hover:shadow-md transition-all shadow-sm cursor-pointer group"
+                      <h3 className="text-base font-black text-slate-900">No jobs yet</h3>
+                      <p className="text-sm text-slate-500 mt-2 max-w-sm mx-auto">
+                        Post your first job and get connected with trusted professionals in your area.
+                      </p>
+                      <button
+                        onClick={() => router.push('/customer/jobs/create')}
+                        className="mt-6 bg-[#2563eb] hover:bg-blue-700 text-white font-bold text-sm px-6 py-3 rounded-2xl inline-flex items-center gap-2 shadow-lg shadow-blue-100 transition-all"
                       >
-                        <div className="flex justify-between items-start">
-                          <span className="text-[10px] font-black text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1 rounded-full uppercase tracking-widest">
-                            Electrical
-                          </span>
-                          <span className="text-[10px] font-black text-blue-700 bg-blue-50 border border-blue-100 px-3 py-1 rounded-full uppercase tracking-widest">
-                            Matched
-                          </span>
-                        </div>
-                        <div className="space-y-2">
-                          <h3 className="font-black text-slate-900 text-lg group-hover:text-[#2563eb] transition-colors">Living Room Rewiring</h3>
-                          <div className="flex items-center gap-5 text-[11px] text-slate-500 font-bold uppercase tracking-wider">
-                            <span className="flex items-center gap-1.5"><MapPin size={14} className="text-[#2563eb]" /> Bellevue, WA</span>
-                            <span className="flex items-center gap-1.5"><Calendar size={14} className="text-[#2563eb]" /> 4 hours ago</span>
-                          </div>
-                        </div>
-                      </div>
-                    </>
+                        <Plus size={18} />
+                        Post a Job
+                      </button>
+                    </div>
                   ) : (
                     jobs.map((job) => (
                       <div 
@@ -383,94 +353,24 @@ export default function CustomerDashboard() {
                 </div>
               </div>
 
-              {/* Recent Matches Section */}
+              {/* Recent Matches Section — dynamically populated from workers list */}
               <div className="space-y-6">
                 <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-                  <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Recent Matches</h2>
+                  <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Find Professionals</h2>
                   <button 
                     onClick={() => router.push('/workers')}
                     className="text-sm font-bold text-[#2563eb] hover:underline"
                   >
-                    Explore More Workers
+                    Browse All Workers
                   </button>
                 </div>
 
-                <div className="space-y-4">
-                  
-                  {/* Match Card 1 (Sarah Jenkins) */}
-                  <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6 hover:shadow-md transition-all">
-                    <div className="flex items-center gap-5 text-left">
-                      <div className="w-16 h-16 rounded-full overflow-hidden shrink-0 relative border-2 border-slate-100 shadow-inner">
-                        <img 
-                          src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=120" 
-                          alt="Sarah Jenkins" 
-                          className="w-full h-full object-cover"
-                        />
-                        <span className="absolute -bottom-1 -right-1 bg-[#2563eb] p-1 rounded-full border-2 border-white shadow-sm flex items-center justify-center">
-                          <CheckCircle2 size={12} className="text-white fill-[#2563eb]" />
-                        </span>
-                      </div>
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-3">
-                          <h3 className="font-black text-slate-900 text-base">Sarah Jenkins</h3>
-                          <span className="text-[10px] font-black text-blue-700 bg-blue-50 border border-blue-100 px-2.5 py-0.5 rounded-md uppercase tracking-wider">
-                            Master Plumber
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-4 text-[11px] text-slate-500 font-bold uppercase tracking-wider">
-                          <span className="flex items-center gap-1.5"><Clock size={14} className="text-[#2563eb]" /> 12 years exp</span>
-                          <span className="text-slate-200">•</span>
-                          <span className="flex items-center gap-1.5"><MapPin size={14} className="text-[#2563eb]" /> 2.4 miles away</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="shrink-0 flex justify-end">
-                      <button 
-                        onClick={() => router.push('/workers/a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d')}
-                        className="border-2 border-blue-100 hover:border-[#2563eb] hover:bg-blue-50 text-[#2563eb] font-bold text-sm px-6 py-3 rounded-2xl transition-all"
-                      >
-                        View Profile
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Match Card 2 (Marco Rossi) */}
-                  <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-6 hover:shadow-md transition-all">
-                    <div className="flex items-center gap-5 text-left">
-                      <div className="w-16 h-16 rounded-full overflow-hidden shrink-0 relative border-2 border-slate-100 shadow-inner">
-                        <img 
-                          src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120" 
-                          alt="Marco Rossi" 
-                          className="w-full h-full object-cover"
-                        />
-                        <span className="absolute -bottom-1 -right-1 bg-[#2563eb] p-1 rounded-full border-2 border-white shadow-sm flex items-center justify-center">
-                          <CheckCircle2 size={12} className="text-white fill-[#2563eb]" />
-                        </span>
-                      </div>
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-3">
-                          <h3 className="font-black text-slate-900 text-base">Marco Rossi</h3>
-                          <span className="text-[10px] font-black text-blue-700 bg-blue-50 border border-blue-100 px-2.5 py-0.5 rounded-md uppercase tracking-wider">
-                            Licensed Electrician
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-4 text-[11px] text-slate-500 font-bold uppercase tracking-wider">
-                          <span className="flex items-center gap-1.5"><Clock size={14} className="text-[#2563eb]" /> 8 years exp</span>
-                          <span className="text-slate-200">•</span>
-                          <span className="flex items-center gap-1.5"><MapPin size={14} className="text-[#2563eb]" /> 5.1 miles away</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="shrink-0 flex justify-end">
-                      <button 
-                        onClick={() => router.push('/workers/b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e')}
-                        className="border-2 border-blue-100 hover:border-[#2563eb] hover:bg-blue-50 text-[#2563eb] font-bold text-sm px-6 py-3 rounded-2xl transition-all"
-                      >
-                        View Profile
-                      </button>
-                    </div>
-                  </div>
-
+                <div className="bg-slate-50 rounded-3xl p-10 text-center border border-slate-100">
+                  <ShieldCheck size={32} className="text-slate-300 mx-auto mb-3" />
+                  <h3 className="text-sm font-black text-slate-600">Post a job to see matching professionals</h3>
+                  <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                    Our matching algorithm will find verified workers in your area based on your job requirements.
+                  </p>
                 </div>
               </div>
 

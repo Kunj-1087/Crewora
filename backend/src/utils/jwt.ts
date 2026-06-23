@@ -34,7 +34,7 @@ function getSecrets(userType: TokenUserType): {
     case 'admin':
       return {
         accessSecret: env.JWT_ADMIN_ACCESS_SECRET,
-        refreshSecret: env.JWT_ADMIN_ACCESS_SECRET, // admin has single secret
+        refreshSecret: env.JWT_ADMIN_REFRESH_SECRET,
       };
   }
 }

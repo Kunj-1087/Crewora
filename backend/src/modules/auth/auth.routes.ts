@@ -4,9 +4,9 @@
  */
 
 import { Router } from 'express';
-import { validate } from '../../middleware/validate';
-import { authRateLimiter } from '../../middleware/rateLimiter';
-import { requireAuth } from '../../middleware/requireAuth';
+import { validate } from '../../middleware/validate.middleware';
+import { sendOtpRateLimiter, verifyOtpRateLimiter, writeRateLimiter as authWriteRateLimiter } from '../../config/rateLimits';
+import { authenticate } from '../../middleware/auth.middleware';
 import * as authController from './auth.controller';
 import {
   sendOtpSchema,
@@ -22,74 +22,72 @@ const router = Router();
 // ─── Customer Auth ────────────────────────────────────────────────────────────
 router.post(
   '/customer/send-otp',
-  authRateLimiter,
+  sendOtpRateLimiter,
   validate({ body: sendOtpSchema }),
   authController.sendOtpCustomer
-);
-
-router.post(
+);router.post(
   '/customer/register',
-  authRateLimiter,
+  authWriteRateLimiter,
   validate({ body: customerRegisterSchema }),
   authController.registerCustomer
 );
 
 router.post(
   '/customer/login',
-  authRateLimiter,
+  verifyOtpRateLimiter,
   validate({ body: loginSchema }),
   authController.loginCustomer
 );
 
-router.post('/customer/refresh', authRateLimiter, authController.refreshCustomerToken);
+router.post('/customer/refresh', authWriteRateLimiter, authController.refreshCustomerToken);
 
 router.post(
   '/customer/logout',
-  requireAuth('customer'),
+  authenticate('customer'),
   authController.logoutCustomer
 );
 
 // ─── Worker Auth ──────────────────────────────────────────────────────────────
 router.post(
   '/worker/send-otp',
-  authRateLimiter,
+  sendOtpRateLimiter,
   validate({ body: sendOtpSchema }),
   authController.sendOtpWorker
 );
 
 router.post(
   '/worker/register',
-  authRateLimiter,
+  authWriteRateLimiter,
   validate({ body: workerRegisterSchema }),
   authController.registerWorker
 );
 
 router.post(
   '/worker/login',
-  authRateLimiter,
+  verifyOtpRateLimiter,
   validate({ body: loginSchema }),
   authController.loginWorker
 );
 
-router.post('/worker/refresh', authRateLimiter, authController.refreshWorkerToken);
+router.post('/worker/refresh', authWriteRateLimiter, authController.refreshWorkerToken);
 
-router.post('/worker/logout', requireAuth('worker'), authController.logoutWorker);
+router.post('/worker/logout', authenticate('worker'), authController.logoutWorker);
 
 // ─── Admin Auth ───────────────────────────────────────────────────────────────
 router.post(
   '/admin/login',
-  authRateLimiter,
+  authWriteRateLimiter,
   validate({ body: adminLoginSchema }),
   authController.loginAdmin
 );
 
-router.post('/admin/refresh', authRateLimiter, authController.refreshAdminToken);
+router.post('/admin/refresh', authWriteRateLimiter, authController.refreshAdminToken);
 
-router.post('/admin/logout', requireAuth('admin'), authController.logoutAdmin);
+router.post('/admin/logout', authenticate('admin'), authController.logoutAdmin);
 
 router.post(
   '/device-token',
-  requireAuth('customer', 'worker'),
+  authenticate('customer', 'worker'),
   validate({ body: deviceTokenSchema }),
   authController.registerDeviceToken
 );

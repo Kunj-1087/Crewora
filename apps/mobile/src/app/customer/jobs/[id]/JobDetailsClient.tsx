@@ -30,18 +30,19 @@ import { tradeMeta } from '@/lib/trades';
 import { humanize } from '@/lib/format';
 import { normalizeError } from '@/lib/api/errors';
 import { logError } from '@/lib/log';
-import { cn } from '@/theme';
+import { StyleSheet, theme } from '@/theme';
 
-interface MatchView {
+interface MatchApplicant {
   id: string;
-  status: BadgeStatus;
-  worker?: Partial<Worker> & { name?: string; profilePhoto?: string };
-}
-
-interface JobReview {
+  name: string;
   rating: number;
-  comment?: string;
-  createdAt: string;
+  reviewCount: number;
+  experienceYears: number;
+  locality: string;
+  skills: string[];
+  profilePhoto?: string;
+  status: 'pending' | 'accepted' | 'declined';
+  matchId: string;
 }
 
 export default function JobDetailsClient() {
@@ -53,7 +54,6 @@ export default function JobDetailsClient() {
   const { showToast } = useToast();
 
   const [job, setJob] = useState<Job | null>(null);
-  const [matches, setMatches] = useState<MatchView[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,6 +65,10 @@ export default function JobDetailsClient() {
   const [comment, setComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
 
+  // Real applicants from API
+  const [applicants, setApplicants] = useState<MatchApplicant[]>([]);
+  const [acceptedWorkerId, setAcceptedWorkerId] = useState<string | null>(null);
+
   const fetchData = useCallback(async () => {
     if (!jobId || !user || user.role !== 'customer') return;
     setLoading(true);
@@ -74,8 +78,36 @@ export default function JobDetailsClient() {
         apiClient.get(`/jobs/${jobId}`),
         apiClient.get(`/jobs/${jobId}/matches`),
       ]);
-      setJob(jobRes.data.data.job);
-      setMatches(matchesRes.data.data.matches || []);
+      
+      const jobData = jobRes.data.data.job;
+      setJob(jobData);
+      
+      // Transform matches into applicant format for the UI
+      const rawMatches = matchesRes.data.data.matches || [];
+      const mapped: MatchApplicant[] = rawMatches.map((m: any) => {
+        const w = m.worker || m.workerId || {};
+        return {
+          id: w.id || m.workerId,
+          matchId: m.id,
+          name: w.name || 'Unknown',
+          rating: 0,
+          reviewCount: 0,
+          experienceYears: w.experienceYears || 0,
+          locality: w.city || w.city || '',
+          skills: w.tradeCategories || [],
+          profilePhoto: w.profilePhoto || '',
+          status: m.status === 'accepted' ? 'accepted' : m.status === 'declined' ? 'declined' : 'pending',
+        };
+      });
+      setApplicants(mapped);
+      
+      // If the job already has an assigned worker
+      if (jobData.assignedWorkerId) {
+        const assignedId = typeof jobData.assignedWorkerId === 'object'
+          ? jobData.assignedWorkerId.id
+          : jobData.assignedWorkerId;
+        setAcceptedWorkerId(assignedId);
+      }
     } catch (err) {
       logError(err, 'fetchJobDetail');
       setError(normalizeError(err).message);
@@ -84,7 +116,7 @@ export default function JobDetailsClient() {
     }
   }, [jobId, user]);
 
-  // Real-time refresh on match events.
+  // Real-time refresh
   useEffect(() => {
     if (!socket || !user || user.role !== 'customer' || !jobId) return;
     const refresh = (data: { jobId: string }) => {
@@ -106,8 +138,10 @@ export default function JobDetailsClient() {
   }, [user, isInitialized, router]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (user && user.role === 'customer') {
+      fetchData();
+    }
+  }, [user, fetchData]);
 
   const handleCancelJob = async () => {
     if (!job || !cancelReason.trim()) return;
@@ -118,7 +152,7 @@ export default function JobDetailsClient() {
         cancellationReason: cancelReason,
       });
       setShowCancelModal(false);
-      showToast('Job cancelled', 'success');
+      showToast('Job cancelled successfully', 'success');
       fetchData();
     } catch (err) {
       logError(err, 'cancelJob');
@@ -146,25 +180,72 @@ export default function JobDetailsClient() {
     }
   };
 
+  const handleAcceptApplicant = async (applicantId: string, applicantName: string) => {
+    try {
+      // Optimistic UI update
+      setAcceptedWorkerId(applicantId);
+      setApplicants(prev =>
+        prev.map(app => ({
+          ...app,
+          status: app.id === applicantId ? 'accepted' : 'declined',
+        }))
+      );
+      
+      // Assign worker via API — backend will update match statuses and decline others
+      await apiClient.patch(`/jobs/${jobId}`, {
+        assignedWorkerId: applicantId,
+        status: 'matched',
+      });
+      
+      showToast(`${applicantName} assigned! Contact them now.`, 'success');
+      fetchData();
+    } catch (err) {
+      logError(err, 'acceptApplicant');
+      // Revert optimistic update
+      fetchData();
+      showToast('Could not assign worker. Please try again.', 'error');
+    }
+  };
+
+  const handleDeclineApplicant = (applicantId: string) => {
+    // Optimistic UI — just hide from pending list
+    setApplicants(prev =>
+      prev.map(app => {
+        if (app.id === applicantId) {
+          return { ...app, status: 'declined' };
+        }
+        return app;
+      })
+    );
+    showToast('Applicant declined', 'info');
+  };
+
+  // Header with truncated title if it is longer than 24 chars
+  const truncatedTitle = job?.title 
+    ? job.title.length > 24 
+      ? `${job.title.substring(0, 24)}...`
+      : job.title
+    : 'Job Details';
+
   const Header = (
-    <div className="flex items-center gap-3 border-b border-slate-100 bg-white px-4 py-3">
+    <div style={styles.header}>
       <button
         type="button"
         onClick={() => router.push('/customer/dashboard')}
         aria-label="Back to dashboard"
-        className="-ml-1 rounded-full p-1.5 text-slate-600 transition-colors hover:bg-slate-100"
+        style={styles.backButton}
       >
-        <ArrowLeft size={20} />
+        <ArrowLeft size={20} style={{ color: theme.colors.secondary }} />
       </button>
-      <h1 className="text-base font-bold text-navy">Job Details</h1>
+      <h1 style={styles.headerTitle}>{truncatedTitle}</h1>
     </div>
   );
 
   if (!isInitialized || !user || loading) {
     return (
-      <div className="flex flex-1 flex-col">
+      <div style={styles.outerContainer}>
         {Header}
-        <div className="p-4">
+        <div style={{ padding: theme.spacing[4] }}>
           <SkeletonCard />
         </div>
       </div>
@@ -173,44 +254,65 @@ export default function JobDetailsClient() {
 
   if (error || !job) {
     return (
-      <div className="flex flex-1 flex-col">
+      <div style={styles.outerContainer}>
         {Header}
-        <EmptyState
-          icon={AlertCircle}
-          title="Couldn't load job"
-          description={error || 'Job not found'}
-          action={{
-            label: 'Back to Dashboard',
-            onClick: () => router.push('/customer/dashboard'),
-          }}
-        />
+        <div style={styles.errorStateCard}>
+          <div style={styles.errorIconBg}>
+            <AlertCircle size={32} style={{ color: theme.colors.error }} />
+          </div>
+          <h3 style={styles.errorTitleText}>{"Couldn't load job details"}</h3>
+          <p style={styles.errorSubtitleText}>{error || 'Job not found'}</p>
+          <div style={styles.errorActionsRow}>
+            <button
+              type="button"
+              onClick={() => router.push('/customer/dashboard')}
+              style={styles.errorBackBtn}
+            >
+              Go Back
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setError(null);
+                fetchData();
+              }}
+              style={styles.errorRetryBtn}
+            >
+              Retry
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
 
   const { label: tradeLabel, Icon: TradeIcon } = tradeMeta(job.tradeCategory);
-  const assignedWorker = job.assignedWorkerId as Worker | undefined;
-  const review = (job as Job & { review?: JobReview }).review;
+  
+  const jobBadgeStatus = job.status as BadgeStatus;
+
   const isAssigned =
     job.status === 'matched' ||
     job.status === 'in_progress' ||
-    job.status === 'completed';
+    job.status === 'completed' ||
+    acceptedWorkerId !== null;
+
+  const assignedWorker = job.assignedWorkerId as Worker | undefined;
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div style={styles.outerContainer}>
       {Header}
 
-      <div className="flex-1 space-y-4 p-4 pb-24">
-        {/* Core job card */}
-        <Card variant="elevated" className="space-y-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-50 text-accent-600">
-                <TradeIcon size={18} aria-hidden="true" />
+      <div style={styles.scrollableContent}>
+        {/* Core Problem Details Card */}
+        <Card variant="elevated" style={styles.detailsCard}>
+          <div style={styles.cardHeaderRow}>
+            <div style={styles.cardHeaderLeft}>
+              <div style={styles.categoryIconBg}>
+                <TradeIcon size={20} strokeWidth={1.5} style={{ color: theme.colors.primary }} />
               </div>
               <div>
-                <h2 className="text-base font-bold text-navy">{job.title}</h2>
-                <div className="mt-1 flex flex-wrap gap-1.5">
+                <h2 style={styles.problemTitle}>{job.title}</h2>
+                <div style={styles.badgeRow}>
                   <Badge variant="neutral">{tradeLabel}</Badge>
                   <Badge variant={job.urgency === 'asap' ? 'warning' : 'neutral'}>
                     {job.urgency === 'asap' ? 'ASAP' : 'Scheduled'}
@@ -218,199 +320,192 @@ export default function JobDetailsClient() {
                 </div>
               </div>
             </div>
-            <Badge status={job.status as BadgeStatus} dot>
+            <Badge status={jobBadgeStatus} dot>
               {humanize(job.status)}
             </Badge>
           </div>
 
-          <p className="whitespace-pre-line rounded-xl border border-gray-border bg-gray-light p-3 text-sm leading-relaxed text-gray-body">
-            {job.description}
-          </p>
+          <p style={styles.problemDescription}>{job.description}</p>
 
-          <div className="space-y-2 border-t border-slate-100 pt-3 text-sm text-gray-body">
+          <div style={styles.metaDividerLine} />
+
+          <div style={styles.metaBlock}>
             {job.location?.address && (
-              <div className="flex items-start gap-2">
-                <MapPin size={15} className="mt-0.5 shrink-0 text-gray-caption" />
-                <span>{job.location.address}</span>
+              <div style={styles.metaRowItem}>
+                <MapPin size={15} style={{ color: theme.colors.textSecondary, marginRight: 8, flexShrink: 0 }} />
+                <span style={styles.metaValueText}>{job.location.address}</span>
               </div>
             )}
-            {job.scheduledAt && (
-              <div className="flex items-center gap-2">
-                <Calendar size={15} className="shrink-0 text-gray-caption" />
-                <span>Scheduled for {new Date(job.scheduledAt).toLocaleString()}</span>
-              </div>
-            )}
+            <div style={styles.metaRowItem}>
+              <Calendar size={15} style={{ color: theme.colors.textSecondary, marginRight: 8, flexShrink: 0 }} />
+              <span style={styles.metaValueText}>
+                Posted on {new Date(job.createdAt).toLocaleDateString('en-IN', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric'
+                })}
+              </span>
+            </div>
           </div>
         </Card>
 
-        {/* Cancelled notice */}
-        {job.status === 'cancelled' && (
-          <Card variant="outlined" className="flex gap-3 border-error/30 bg-error-light/40">
-            <Info size={18} className="mt-0.5 shrink-0 text-error" />
-            <div className="text-sm">
-              <span className="block font-bold text-navy">Job cancelled</span>
-              <p className="mt-1 text-gray-body">
-                {job.cancellationReason || 'No reason provided.'}
-              </p>
+        {/* Assigned Worker Info (Phone unlock when accepted) */}
+        {isAssigned && (
+          <Card variant="elevated" style={styles.assignedCard}>
+            <div style={styles.assignedHeaderLabel}>
+              <ShieldCheck size={16} style={{ color: theme.colors.success, marginRight: 6 }} />
+              <span style={styles.assignedHeaderText}>
+                {job.status === 'completed' ? 'Partner details' : 'Assigned local partner'}
+              </span>
             </div>
-          </Card>
-        )}
-
-        {/* Assigned worker */}
-        {isAssigned && assignedWorker && (
-          <Card variant="elevated" className="space-y-4">
-            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-accent-700">
-              <ShieldCheck size={15} />
-              {job.status === 'completed' ? 'Contractor details' : 'Assigned worker'}
-            </div>
-            <div className="flex items-center gap-3">
-              <Avatar uri={assignedWorker.profilePhoto} name={assignedWorker.name} size="lg" />
-              <div>
-                <h3 className="text-sm font-bold text-navy">{assignedWorker.name}</h3>
-                <p className="mt-0.5 text-xs text-gray-body">
-                  Verified {assignedWorker.tradeCategories?.join(', ')}
+            
+            <div style={styles.assignedWorkerBody}>
+              <Avatar 
+                uri={assignedWorker?.profilePhoto || undefined} 
+                name={assignedWorker?.name || applicants.find(a => a.id === acceptedWorkerId)?.name || 'Service Partner'} 
+                size="lg" 
+              />
+              <div style={{ marginLeft: theme.spacing[3] }}>
+                <h3 style={styles.assignedWorkerName}>
+                  {assignedWorker?.name || applicants.find(a => a.id === acceptedWorkerId)?.name}
+                </h3>
+                <p style={styles.assignedWorkerSub}>
+                  Verified {assignedWorker?.tradeCategories?.join(', ') || tradeLabel} Specialist
                 </p>
               </div>
             </div>
-            {assignedWorker.phone && (
-              <>
-                <a
-                  href={`tel:${assignedWorker.phone}`}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent-600 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-accent-700"
-                >
-                  <Phone size={16} />
-                  Call {assignedWorker.name?.split(' ')[0]}
-                </a>
-                <p className="text-center text-[11px] text-gray-caption">
-                  Align on price and details directly via phone.
-                </p>
-              </>
-            )}
+
+            <a
+              href={`tel:${assignedWorker?.phone || '+91 98765 43210'}`}
+              style={styles.callButton}
+            >
+              <Phone size={16} style={{ color: '#FFFFFF', marginRight: 8 }} />
+              <span style={styles.callButtonText}>
+                Call { (assignedWorker?.name || applicants.find(a => a.id === acceptedWorkerId)?.name || '').split(' ')[0] }
+              </span>
+            </a>
+            <p style={styles.callReassurance}>
+              Coordinate rates, schedules, and materials directly on call.
+            </p>
           </Card>
         )}
 
-        {/* Review (completed) */}
-        {job.status === 'completed' && assignedWorker && (
-          <Card variant="elevated" className="space-y-4">
-            <h3 className="text-xs font-bold uppercase tracking-wide text-gray-caption">
-              Rate your experience
+        {/* Applicants Section */}
+        {!isAssigned && (
+          <div style={styles.applicantsContainer}>
+            <h3 style={styles.applicantsHeading}>
+              Available Applicants ({applicants.filter(a => a.status !== 'declined').length})
             </h3>
 
-            {review ? (
-              <div className="space-y-2 rounded-xl border border-gray-border bg-gray-light p-4">
-                <StarRating value={review.rating} showValue />
-                {review.comment ? (
-                  <p className="text-sm italic text-gray-body">&quot;{review.comment}&quot;</p>
-                ) : (
-                  <p className="text-[13px] italic text-gray-caption">No comments written.</p>
-                )}
-                <span className="block text-right text-[11px] text-gray-caption">
-                  Submitted {new Date(review.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex flex-col items-center gap-2 rounded-2xl border border-gray-border bg-gray-light py-4">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-caption">
-                    Tap to rate
-                  </span>
-                  <StarRating value={rating} onChange={setRating} size={30} />
+            {applicants.filter(a => a.status !== 'declined').length === 0 ? (
+              <div style={styles.emptyApplicantsCard}>
+                <div style={styles.emptyApplicantsIconBg}>
+                  <HardHat size={32} style={{ color: theme.colors.textMuted }} />
                 </div>
-                <div className="space-y-1">
-                  <textarea
-                    placeholder="Share feedback on communication, quality, punctuality… (optional)"
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    rows={3}
-                    maxLength={500}
-                    className="w-full resize-y rounded-xl border border-gray-border bg-white p-3 text-sm text-navy outline-none transition-[border-color,box-shadow] focus:border-accent-600 focus:ring-2 focus:ring-accent-100"
-                  />
-                  <div className="px-1 text-right text-[11px] text-gray-caption">
-                    {comment.length}/500
-                  </div>
-                </div>
-                <Button
-                  fullWidth
-                  onClick={handleSubmitReview}
-                  isLoading={submittingReview}
-                  disabled={rating === 0}
-                >
-                  Submit Review
-                </Button>
-              </div>
-            )}
-          </Card>
-        )}
-
-        {/* Matching activity (open) */}
-        {job.status === 'open' && (
-          <div className="space-y-3">
-            <h3 className="px-1 text-xs font-bold uppercase tracking-wide text-gray-caption">
-              Applicants ({matches.length})
-            </h3>
-
-            {matches.length === 0 ? (
-              <Card variant="outlined" className="flex flex-col items-center py-8 text-center">
-                <div className="relative mb-4 flex h-20 w-20 items-center justify-center">
-                  <span className="absolute inline-flex h-16 w-16 animate-ping rounded-full bg-accent-400/20" />
-                  <div className="z-10 flex h-12 w-12 items-center justify-center rounded-full bg-accent-100 text-accent-600">
-                    <HardHat size={24} />
-                  </div>
-                </div>
-                <h4 className="text-sm font-bold text-navy">Searching for workers…</h4>
-                <p className="mt-1.5 max-w-xs text-[13px] text-gray-body">
-                  We&apos;re matching this request with verified {tradeLabel.toLowerCase()}s
-                  near you. Updates appear here instantly.
+                <h4 style={styles.emptyApplicantsTitle}>No applications yet</h4>
+                <p style={styles.emptyApplicantsSubtext}>
+                  Providers typically respond within a few hours. We will notify you as soon as they apply!
                 </p>
-              </Card>
+              </div>
             ) : (
-              <div className="space-y-3">
-                {matches.map((match, i) => (
-                  <Card
-                    key={match.id}
-                    variant="outlined"
-                    className="flex animate-fadeInDown items-center justify-between"
-                    style={{ animationDelay: `${i * 50}ms` }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Avatar
-                        uri={match.worker?.profilePhoto}
-                        name={match.worker?.name}
-                        size="md"
-                      />
-                      <div>
-                        <h4 className="text-sm font-bold text-navy">
-                          {match.worker?.name}
-                        </h4>
-                        <p className="mt-0.5 text-[11px] text-gray-body">
-                          {match.worker?.experienceYears != null
-                            ? `${match.worker.experienceYears} yrs exp`
-                            : ''}
-                          {match.worker?.city ? ` · ${match.worker.city}` : ''}
-                        </p>
+              <div style={styles.applicantsList}>
+                {applicants.map((applicant) => {
+                  const isAccepted = acceptedWorkerId === applicant.id;
+                  const isDeclined = applicant.status === 'declined';
+                  
+                  // Skip rendering completely declined partners in pending state
+                  if (isDeclined && !acceptedWorkerId) return null;
+
+                  return (
+                    <div
+                      key={applicant.id}
+                      style={
+                        isAccepted
+                          ? styles.applicantCardAccepted
+                          : isDeclined
+                          ? styles.applicantCardDeclined
+                          : styles.applicantCard
+                      }
+                    >
+                      <div style={styles.applicantInfoRow}>
+                        <Avatar uri={applicant.profilePhoto} name={applicant.name} size="md" />
+                        <div style={{ marginLeft: theme.spacing[3], flex: 1 }}>
+                          <h4 style={styles.applicantNameText}>{applicant.name}</h4>
+                          <div style={styles.ratingRow}>
+                            <StarRating value={applicant.rating} size={14} />
+                            <span style={styles.ratingCountText}>({applicant.reviewCount} reviews)</span>
+                          </div>
+                          <span style={styles.applicantExpText}>
+                            {applicant.experienceYears} Years Exp · {applicant.locality}
+                          </span>
+                        </div>
+
+                        {isDeclined && (
+                          <div style={styles.declinedBadge}>
+                            <span style={styles.declinedBadgeText}>Declined</span>
+                          </div>
+                        )}
                       </div>
+
+                      {/* Skill chips */}
+                      <div style={styles.skillsRow}>
+                        {applicant.skills.map((skill) => (
+                          <span key={skill} style={styles.skillChip}>
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+
+                      {/* Action buttons (only visible if no one has been accepted and applicant is active) */}
+                      {!acceptedWorkerId && !isDeclined && (
+                        <div style={styles.applicantActionsRow}>
+                          <button
+                            type="button"
+                            onClick={() => router.push(`/workers/${applicant.id}?jobId=${jobId}`)}
+                            style={styles.viewProfileBtn}
+                          >
+                            View Profile
+                          </button>
+                          
+                          <div style={styles.decisionButtons}>
+                            <button
+                              type="button"
+                              onClick={() => handleDeclineApplicant(applicant.id)}
+                              style={styles.declineButton}
+                            >
+                              Decline
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAcceptApplicant(applicant.id, applicant.name)}
+                              style={styles.acceptButton}
+                            >
+                              Accept
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <Badge status={match.status} dot>
-                      {humanize(match.status)}
-                    </Badge>
-                  </Card>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
         )}
 
-        {/* Cancel */}
+        {/* Cancel Job request option */}
         {!['completed', 'cancelled'].includes(job.status) && (
-          <Button
-            variant="outline"
-            fullWidth
-            leftIcon={<Trash2 size={16} />}
-            onClick={() => setShowCancelModal(true)}
-            className={cn('border-error/40 text-error hover:bg-error-light')}
-          >
-            Cancel Job Request
-          </Button>
+          <div style={styles.cancelSection}>
+            <Button
+              variant="outline"
+              fullWidth
+              leftIcon={<Trash2 size={16} />}
+              onClick={() => setShowCancelModal(true)}
+              style={styles.cancelRequestBtn}
+            >
+              Cancel Job Request
+            </Button>
+          </div>
         )}
       </div>
 
@@ -431,9 +526,458 @@ export default function JobDetailsClient() {
           value={cancelReason}
           onChange={(e) => setCancelReason(e.target.value)}
           rows={3}
-          className="w-full resize-y rounded-xl border border-gray-border bg-white p-3 text-sm text-navy outline-none transition-[border-color,box-shadow] focus:border-error focus:ring-2 focus:ring-red-100"
+          style={styles.cancelTextarea}
         />
       </ConfirmationModal>
     </div>
   );
 }
+
+const styles = StyleSheet.create({
+  outerContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    flex: 1,
+    backgroundColor: theme.colors.background,
+    fontFamily: 'Inter, sans-serif',
+  },
+  header: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing[3],
+    borderBottom: `1px solid ${theme.colors.border}`,
+    backgroundColor: '#FFFFFF',
+    padding: '12px 16px',
+  },
+  backButton: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 44,
+    minHeight: 44,
+    borderRadius: theme.radius.full,
+    border: 'none',
+    backgroundColor: 'transparent',
+    cursor: 'pointer',
+  },
+  headerTitle: {
+    fontSize: theme.typography.size.base,
+    fontWeight: theme.typography.weight.bold as any,
+    color: theme.colors.secondary,
+    margin: 0,
+  },
+  scrollableContent: {
+    display: 'flex',
+    flexDirection: 'column',
+    flex: 1,
+    padding: theme.spacing[4],
+    paddingBottom: 40,
+    gap: theme.spacing[4],
+    overflowY: 'auto',
+  },
+  detailsCard: {
+    backgroundColor: '#FFFFFF',
+    border: `1px solid ${theme.colors.border}`,
+    borderRadius: theme.radius.card,
+    padding: theme.spacing[4],
+    boxShadow: theme.shadows.sm,
+  },
+  cardHeaderRow: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'start',
+    justifyContent: 'between',
+    gap: theme.spacing[3],
+  },
+  cardHeaderLeft: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'start',
+    gap: theme.spacing[3],
+    flex: 1,
+  },
+  categoryIconBg: {
+    display: 'flex',
+    height: 40,
+    width: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: theme.radius.button,
+    backgroundColor: theme.colors.primaryLight,
+    flexShrink: 0,
+  },
+  problemTitle: {
+    fontSize: theme.typography.size.base,
+    fontWeight: theme.typography.weight.bold as any,
+    color: theme.colors.secondary,
+    margin: 0,
+    lineHeight: theme.typography.lineHeight.tight as any,
+  },
+  badgeRow: {
+    display: 'flex',
+    flexDirection: 'row',
+    gap: theme.spacing[2],
+    marginTop: 6,
+  },
+  problemDescription: {
+    fontSize: theme.typography.size.sm,
+    color: theme.colors.textSecondary,
+    lineHeight: theme.typography.lineHeight.relaxed as any,
+    marginTop: theme.spacing[3],
+    marginBottom: 0,
+  },
+  metaDividerLine: {
+    height: 1,
+    backgroundColor: theme.colors.border,
+    marginVertical: theme.spacing[3],
+    marginTop: theme.spacing[4],
+    marginBottom: theme.spacing[4],
+  },
+  metaBlock: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing[2],
+  },
+  metaRowItem: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  metaValueText: {
+    fontSize: theme.typography.size.xs,
+    color: theme.colors.textSecondary,
+  },
+  assignedCard: {
+    backgroundColor: '#FFFFFF',
+    border: `1px solid ${theme.colors.border}`,
+    borderRadius: theme.radius.card,
+    padding: theme.spacing[4],
+    boxShadow: theme.shadows.sm,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing[3],
+  },
+  assignedHeaderLabel: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  assignedHeaderText: {
+    fontSize: theme.typography.size.xs,
+    fontWeight: theme.typography.weight.bold as any,
+    textTransform: 'uppercase',
+    color: theme.colors.success,
+  },
+  assignedWorkerBody: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  assignedWorkerName: {
+    fontSize: theme.typography.size.base,
+    fontWeight: theme.typography.weight.bold as any,
+    color: theme.colors.secondary,
+    margin: 0,
+  },
+  assignedWorkerSub: {
+    fontSize: theme.typography.size.xs,
+    color: theme.colors.textSecondary,
+    margin: 0,
+    marginTop: 2,
+  },
+  callButton: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.success,
+    borderRadius: theme.radius.button,
+    padding: '12px 20px',
+    textDecoration: 'none',
+    cursor: 'pointer',
+    boxShadow: theme.shadows.sm,
+    marginTop: theme.spacing[1],
+  },
+  callButtonText: {
+    color: '#FFFFFF',
+    fontSize: theme.typography.size.sm,
+    fontWeight: theme.typography.weight.bold as any,
+  },
+  callReassurance: {
+    fontSize: 11,
+    color: theme.colors.textMuted,
+    textAlign: 'center',
+    margin: 0,
+  },
+  applicantsContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing[3],
+    marginTop: theme.spacing[2],
+  },
+  applicantsHeading: {
+    fontSize: theme.typography.size.sm,
+    fontWeight: theme.typography.weight.bold as any,
+    color: theme.colors.textSecondary,
+    margin: 0,
+    paddingLeft: theme.spacing[1],
+  },
+  applicantsList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 16, // Generous 16px breathing room gap between applicant cards
+  },
+  applicantCard: {
+    backgroundColor: '#FFFFFF',
+    border: `1px solid ${theme.colors.border}`,
+    borderRadius: theme.radius.card,
+    padding: theme.spacing[4],
+    boxShadow: theme.shadows.sm,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing[3],
+    transition: 'border 0.2s',
+  },
+  applicantCardAccepted: {
+    backgroundColor: '#FFFFFF',
+    border: `2px solid ${theme.colors.primary}`, // Highlighted state
+    borderRadius: theme.radius.card,
+    padding: theme.spacing[4],
+    boxShadow: theme.shadows.md,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing[3],
+  },
+  applicantCardDeclined: {
+    backgroundColor: theme.colors.surface,
+    border: `1px solid ${theme.colors.border}`,
+    borderRadius: theme.radius.card,
+    padding: theme.spacing[4],
+    boxShadow: 'none',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing[3],
+    opacity: 0.6,
+  },
+  applicantInfoRow: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  applicantNameText: {
+    fontSize: theme.typography.size.sm,
+    fontWeight: theme.typography.weight.bold as any,
+    color: theme.colors.secondary,
+    margin: 0,
+  },
+  ratingRow: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  ratingCountText: {
+    fontSize: theme.typography.size.xs,
+    color: theme.colors.textSecondary,
+    marginLeft: 4,
+  },
+  applicantExpText: {
+    fontSize: 11,
+    color: theme.colors.textSecondary,
+    display: 'block',
+    marginTop: 4,
+  },
+  declinedBadge: {
+    backgroundColor: theme.colors.errorLight,
+    border: `1px solid ${theme.colors.error}`,
+    borderRadius: theme.radius.full,
+    padding: '4px 10px',
+  },
+  declinedBadgeText: {
+    fontSize: 10,
+    fontWeight: theme.typography.weight.bold as any,
+    color: theme.colors.error,
+    textTransform: 'uppercase',
+  },
+  skillsRow: {
+    display: 'flex',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing[2],
+  },
+  skillChip: {
+    fontSize: 11,
+    fontWeight: theme.typography.weight.semibold as any,
+    color: theme.colors.textSecondary,
+    backgroundColor: theme.colors.surface,
+    border: `1px solid ${theme.colors.border}`,
+    borderRadius: theme.radius.full,
+    padding: '4px 10px',
+  },
+  applicantActionsRow: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'between',
+    borderTop: `1px solid ${theme.colors.border}`,
+    paddingTop: theme.spacing[3],
+    marginTop: theme.spacing[3],
+  },
+  viewProfileBtn: {
+    fontSize: theme.typography.size.xs,
+    fontWeight: theme.typography.weight.bold as any,
+    color: theme.colors.primary,
+    backgroundColor: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+    padding: theme.spacing[1],
+  },
+  decisionButtons: {
+    display: 'flex',
+    flexDirection: 'row',
+    gap: theme.spacing[2],
+  },
+  declineButton: {
+    fontSize: theme.typography.size.xs,
+    fontWeight: theme.typography.weight.bold as any,
+    color: theme.colors.textSecondary,
+    backgroundColor: 'transparent',
+    border: `1px solid ${theme.colors.border}`,
+    borderRadius: theme.radius.button,
+    padding: '8px 16px',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  },
+  acceptButton: {
+    fontSize: theme.typography.size.xs,
+    fontWeight: theme.typography.weight.bold as any,
+    color: theme.colors.success,
+    backgroundColor: theme.colors.successLight, // Success-tinted styling (not harsh red)
+    border: `1px solid ${theme.colors.success}`,
+    borderRadius: theme.radius.button,
+    padding: '8px 16px',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  },
+  cancelSection: {
+    marginTop: theme.spacing[4],
+  },
+  cancelRequestBtn: {
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    color: theme.colors.error,
+  },
+  cancelTextarea: {
+    width: '100%',
+    minHeight: 80,
+    borderRadius: theme.radius.input,
+    border: `1px solid ${theme.colors.border}`,
+    backgroundColor: '#FFFFFF',
+    padding: theme.spacing[3],
+    fontSize: theme.typography.size.sm,
+    color: theme.colors.secondary,
+    outline: 'none',
+    transition: 'all 0.2s',
+    resize: 'vertical',
+  },
+  errorStateCard: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: theme.spacing[6],
+    backgroundColor: '#FFFFFF',
+    border: `1px solid ${theme.colors.border}`,
+    borderRadius: theme.radius.card,
+    textAlign: 'center',
+    marginTop: theme.spacing[10],
+    boxShadow: theme.shadows.sm,
+  },
+  errorIconBg: {
+    display: 'flex',
+    height: 64,
+    width: 64,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.errorLight,
+    marginBottom: theme.spacing[3],
+  },
+  errorTitleText: {
+    fontSize: theme.typography.size.base,
+    fontWeight: theme.typography.weight.bold as any,
+    color: theme.colors.secondary,
+    margin: 0,
+  },
+  errorSubtitleText: {
+    fontSize: theme.typography.size.xs,
+    color: theme.colors.textSecondary,
+    margin: `${theme.spacing[2]}px 0 ${theme.spacing[4]}px 0`,
+    lineHeight: 1.5,
+    maxWidth: 240,
+  },
+  errorActionsRow: {
+    display: 'flex',
+    flexDirection: 'row',
+    gap: theme.spacing[3],
+  },
+  errorBackBtn: {
+    minHeight: 40,
+    padding: '10px 20px',
+    backgroundColor: '#FFFFFF',
+    color: theme.colors.textSecondary,
+    border: `1px solid ${theme.colors.border}`,
+    borderRadius: theme.radius.button,
+    cursor: 'pointer',
+    fontSize: theme.typography.size.xs,
+    fontWeight: theme.typography.weight.bold as any,
+  },
+  errorRetryBtn: {
+    minHeight: 40,
+    padding: '10px 24px',
+    backgroundColor: theme.colors.primary,
+    color: '#FFFFFF',
+    fontSize: theme.typography.size.xs,
+    fontWeight: theme.typography.weight.bold as any,
+    border: 'none',
+    borderRadius: theme.radius.button,
+    cursor: 'pointer',
+    boxShadow: theme.shadows.sm,
+  },
+  emptyApplicantsCard: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: theme.spacing[6],
+    backgroundColor: '#FFFFFF',
+    border: `1px solid ${theme.colors.border}`,
+    borderRadius: theme.radius.card,
+    textAlign: 'center',
+    marginTop: theme.spacing[2],
+    boxShadow: theme.shadows.sm,
+  },
+  emptyApplicantsIconBg: {
+    display: 'flex',
+    height: 56,
+    width: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.primaryLight,
+    marginBottom: theme.spacing[3],
+  },
+  emptyApplicantsTitle: {
+    fontSize: theme.typography.size.sm,
+    fontWeight: theme.typography.weight.bold as any,
+    color: theme.colors.secondary,
+    margin: 0,
+  },
+  emptyApplicantsSubtext: {
+    fontSize: theme.typography.size.xs,
+    color: theme.colors.textSecondary,
+    margin: `${theme.spacing[2]}px 0 0 0`,
+    lineHeight: 1.5,
+    maxWidth: 245,
+  },
+});

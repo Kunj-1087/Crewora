@@ -9,3 +9,6 @@ out/
 data/
 uploads/
 jdk21-portable/
+
+# reserved Windows filename
+nul

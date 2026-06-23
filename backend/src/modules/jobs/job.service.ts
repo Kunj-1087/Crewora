@@ -144,7 +144,7 @@ export async function getJobById(jobId: string, requestingUserId: string, userTy
 export async function updateJob(
   jobId: string,
   customerId: string,
-  updates: { title?: string; description?: string; scheduledAt?: string; status?: string; cancellationReason?: string },
+  updates: { title?: string; description?: string; scheduledAt?: string; status?: string; cancellationReason?: string; assignedWorkerId?: string },
   io?: any
 ) {
   const job = await prisma.job.findUnique({ where: { id: jobId } });
@@ -160,6 +160,41 @@ export async function updateJob(
   if (updates.title) allowedUpdates.title = updates.title;
   if (updates.description) allowedUpdates.description = updates.description;
   if (updates.scheduledAt) allowedUpdates.scheduledAt = new Date(updates.scheduledAt);
+
+  // Customer assigns a worker to the job (selects them from matches)
+  if (updates.assignedWorkerId && job.status === 'open') {
+    allowedUpdates.assignedWorkerId = updates.assignedWorkerId;
+    allowedUpdates.status = 'matched';
+
+    // Verify the worker has a pending match before assigning
+    const pendingMatch = await prisma.match.findFirst({
+      where: { jobId, workerId: updates.assignedWorkerId, status: 'pending' },
+    });
+    if (!pendingMatch) {
+      throw new AppError('Worker is not a pending match for this job', 400);
+    }
+
+    // Decline all other pending matches for this job
+    await prisma.match.updateMany({
+      where: {
+        jobId,
+        workerId: { not: updates.assignedWorkerId },
+        status: 'pending',
+      },
+      data: { status: 'declined' },
+    });
+
+    // Notify the selected worker
+    if (io) {
+      io.to(updates.assignedWorkerId).emit('new_job_invite_selected', {
+        jobId,
+        title: job.title,
+      });
+    }
+
+    logger.info(`Customer assigned worker ${updates.assignedWorkerId} to job ${jobId}`);
+  }
+
   if (updates.status === 'cancelled') {
     allowedUpdates.status = 'cancelled';
     allowedUpdates.cancelledAt = new Date();

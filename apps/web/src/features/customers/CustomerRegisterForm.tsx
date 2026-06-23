@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -10,6 +10,8 @@ import { User, Phone, Key } from 'lucide-react';
 import { Input } from '@crewora/ui';
 import { Button } from '@crewora/ui';
 import { useAuthStore } from '@/store/authStore';
+
+const OTP_RESEND_SECONDS = 30;
 
 const schema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -25,6 +27,35 @@ export function CustomerRegisterForm() {
   const [otpSent, setOtpSent] = useState(false);
   const [devOtp, setDevOtp] = useState<string | null>(null);
   const [showDevPopup, setShowDevPopup] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Resend countdown timer
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    cooldownRef.current = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          if (cooldownRef.current) clearInterval(cooldownRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (cooldownRef.current) clearInterval(cooldownRef.current);
+    };
+  }, [resendCooldown > 0]);
+
+  // Auto-focus OTP input when it appears
+  useEffect(() => {
+    if (otpSent) {
+      const el = document.querySelector<HTMLInputElement>('[name="otp"]');
+      setTimeout(() => el?.focus(), 50);
+    }
+  }, [otpSent]);
+
+
 
   const {
     register,
@@ -36,7 +67,7 @@ export function CustomerRegisterForm() {
     formState: { errors },
   } = useForm<FormData>({ resolver: zodResolver(schema) });
 
-  const handleSendOtp = async () => {
+  const handleSendOtp = useCallback(async () => {
     clearError();
     const isValid = await trigger(['name', 'phone']);
     if (!isValid) return;
@@ -45,16 +76,18 @@ export function CustomerRegisterForm() {
     try {
       const generatedOtp = await sendOtp(values.phone, 'customer');
       setOtpSent(true);
+      setResendCooldown(OTP_RESEND_SECONDS);
       if (generatedOtp) {
         setDevOtp(generatedOtp);
         setShowDevPopup(true);
       }
+      setTimeout(() => document.querySelector<HTMLInputElement>('[name="otp"]')?.focus(), 100);
     } catch {
       // Error handled in store
     }
-  };
+  }, [sendOtp, getValues, clearError, setError, trigger]);
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = useCallback(async (data: FormData) => {
     clearError();
     if (!otpSent) {
       await handleSendOtp();
@@ -74,7 +107,7 @@ export function CustomerRegisterForm() {
     } catch {
       // Error handled in store
     }
-  };
+  }, [otpSent, handleSendOtp, registerCustomer, clearError, setError, router]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
@@ -116,7 +149,17 @@ export function CustomerRegisterForm() {
           error={errors.otp?.message}
           required
           autoFocus
-          {...register('otp')}
+          {...register('otp', {
+            onChange: (e) => {
+              const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+              setValue('otp', val, { shouldValidate: true });
+              if (val.length === 6) {
+                const values = getValues();
+                values.otp = val;
+                onSubmit(values);
+              }
+            },
+          })}
         />
       )}
 
@@ -129,16 +172,26 @@ export function CustomerRegisterForm() {
           <Button type="submit" fullWidth isLoading={isLoading} size="lg">
             Verify & Create Account
           </Button>
-          <button
-            type="button"
-            onClick={() => {
-              setOtpSent(false);
-              setDevOtp(null);
-            }}
-            className="w-full text-center text-xs text-primary-500 hover:underline pt-2"
-          >
-            Change Phone / Name
-          </button>
+          <div className="flex items-center justify-between pt-2">
+            <button
+              type="button"
+              onClick={() => {
+                setOtpSent(false);
+                setDevOtp(null);
+              }}
+              className="text-xs text-primary-500 hover:underline"
+            >
+              Change Details
+            </button>
+            <button
+              type="button"
+              disabled={resendCooldown > 0}
+              onClick={handleSendOtp}
+              className="text-xs text-primary-500 enabled:hover:underline disabled:text-gray-caption"
+            >
+              {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend OTP'}
+            </button>
+          </div>
         </div>
       )}
 
